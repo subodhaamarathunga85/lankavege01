@@ -1,0 +1,2621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lanka Vege — Sri Lankan Vegetable Marketplace &amp; Live Prices</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Configure Tailwind theme tokens for Lanka Vege
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif']
+          },
+          colors: {
+            forest: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              200: '#a7f3d0',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+              950: '#022c22'
+            },
+            earth: {
+              50: '#fcfbf7',
+              100: '#f6f2e7',
+              200: '#e9e1cf',
+              700: '#78552b',
+              800: '#5c401e'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #fcfbf7;
+      color: #1c1917;
+      font-variant-numeric: tabular-nums;
+      overflow-x: hidden;
+    }
+
+    .num-lkr {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Slide-out Basket Drawer animation */
+    .drawer-backdrop {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .drawer-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .drawer-panel {
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .drawer-backdrop.open .drawer-panel {
+      transform: translateX(0);
+    }
+
+    /* Modal backdrop & card animation */
+    .modal-backdrop {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-card {
+      transform: scale(0.96) translateY(10px);
+      transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .modal-backdrop.open .modal-card {
+      transform: scale(1) translateY(0);
+    }
+
+    /* Toast notification animation */
+    .toast-banner {
+      transform: translateY(16px);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    .toast-banner.show {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Highlight animation when a vegetable price shifts live */
+    @keyframes livePriceFlash {
+      0% {
+        background-color: #fef08a;
+        transform: scale(1.04);
+      }
+      55% {
+        background-color: #d1fae5;
+      }
+      100% {
+        background-color: transparent;
+        transform: scale(1);
+      }
+    }
+
+    .live-price-flash {
+      animation: livePriceFlash 1.2s ease-out;
+      border-radius: 8px;
+    }
+
+    /* Subtle custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f6f2e7;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-earth-50 text-stone-900 antialiased">
+
+  <!-- Top Status Utility Bar: Live Sri Lanka Date/Time, Free (Negotiable) Delivery & Click/Copy Contacts -->
+  <div class="bg-forest-950 text-emerald-50 text-xs py-2.5 px-4 border-b border-forest-800">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2.5">
+      <!-- Live Date & Time (Asia/Colombo) + Free (Negotiable) Delivery -->
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <span class="inline-flex items-center gap-1.5 font-extrabold text-amber-300 bg-white/10 border border-amber-300/30 px-2.5 py-1 rounded-lg">
+          <span class="w-2 h-2 rounded-full bg-amber-300 animate-pulse"></span>
+          <span id="topNegotiableDeliveryText">Delivery: Free (Negotiable) • All 25 Districts</span>
+        </span>
+
+        <span class="inline-flex items-center gap-1.5 font-bold text-emerald-100 bg-forest-900/90 border border-forest-700/70 px-2.5 py-1 rounded-lg num-lkr">
+          <span>🇱🇰</span>
+          <span id="slLiveDateText">Loading date...</span>
+          <span class="text-emerald-400">•</span>
+          <strong id="slLiveTimeText" class="text-amber-200">--:--:--</strong>
+        </span>
+      </div>
+
+      <!-- Clickable + Copyable Contact Information -->
+      <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <span id="contactLabelPrefix" class="text-emerald-200/85 font-semibold hidden sm:inline">Contact:</span>
+
+        <button
+          type="button"
+          data-copy="subodaamrathunga80@gmail.com"
+          class="copy-contact-btn inline-flex items-center gap-1 bg-white/10 hover:bg-white/20 text-emerald-50 px-2.5 py-1 rounded-lg border border-white/15 font-semibold transition cursor-pointer"
+          title="Click to copy email"
+        >
+          <span>✉️</span>
+          <span>subodaamrathunga80@gmail.com</span>
+        </button>
+
+        <a
+          href="tel:0716692129"
+          data-copy="0716692129"
+          class="copy-contact-btn inline-flex items-center gap-1 bg-white/10 hover:bg-white/20 text-amber-200 px-2.5 py-1 rounded-lg border border-white/15 font-bold transition num-lkr"
+          title="Click to copy or call 0716692129"
+        >
+          <span>📞</span>
+          <span>0716692129</span>
+        </a>
+
+        <a
+          href="tel:0718150066"
+          data-copy="0718150066"
+          class="copy-contact-btn inline-flex items-center gap-1 bg-white/10 hover:bg-white/20 text-amber-200 px-2.5 py-1 rounded-lg border border-white/15 font-bold transition num-lkr"
+          title="Click to copy or call 0718150066"
+        >
+          <span>📞</span>
+          <span>0718150066</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sticky Header: Brand, Role Toggle (Others vs Admin), District, Language, Basket & Live Price Engine -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-earth-200 shadow-2xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+
+        <!-- Brand Logo & Name -->
+        <a href="#top" class="flex items-center gap-3 group focus:outline-none">
+          <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-forest-600 to-forest-900 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22V11" />
+              <path d="M12 13C7.5 13 4 9.8 4 5.5c4.3 0 8 3.2 8 7.5Z" />
+              <path d="M12 11c4.5 0 8-3.2 8-7.5-4.3 0-8 3.2-8 7.5Z" />
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl sm:text-2xl font-black tracking-tight text-forest-950">Lanka Vege</span>
+              <span id="headerFreeBadge" class="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-forest-100 text-forest-800 border border-forest-200">
+                Free (Negotiable)
+              </span>
+            </div>
+            <p id="brandSubtitle" class="text-[11px] sm:text-xs text-stone-500 font-medium">
+              Sri Lankan Farm-to-Door Vegetable Marketplace
+            </p>
+          </div>
+        </a>
+
+        <!-- Right Controls: Role Switch (Others vs Admin), District, Trilingual Toggle, Basket -->
+        <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
+
+          <!-- Role Switcher: Others vs Admin -->
+          <div class="inline-flex items-center rounded-xl bg-earth-100 p-1 border border-earth-200" role="group" aria-label="Role selector">
+            <button
+              id="roleOthersBtn"
+              type="button"
+              class="px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer bg-stone-800 text-white shadow-2xs"
+            >
+              <span id="roleOthersLabel">Others</span>
+            </button>
+            <button
+              id="roleAdminBtn"
+              type="button"
+              class="px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer text-stone-700 hover:text-stone-950 flex items-center gap-1"
+            >
+              <span id="roleAdminIcon">🔒</span>
+              <span id="roleAdminLabel">Admin</span>
+            </button>
+          </div>
+
+          <!-- Active Admin Badge & Lock Button (shown only when authenticated as Admin) -->
+          <div id="adminActivePill" class="hidden items-center gap-1.5 bg-amber-100 border border-amber-300 text-amber-950 px-2.5 py-1 rounded-xl text-xs font-extrabold">
+            <span>🛡️</span>
+            <span id="adminActiveBadgeText">Admin Unlocked</span>
+            <button
+              id="lockAdminBtn"
+              type="button"
+              class="ml-1 px-2 py-0.5 rounded-md bg-amber-950 hover:bg-stone-800 text-white text-[11px] font-bold cursor-pointer transition"
+            >
+              <span id="lockAdminBtnText">Lock Admin</span>
+            </button>
+          </div>
+
+          <!-- 25 Sri Lankan Districts Selector -->
+          <div class="flex items-center gap-1.5 bg-earth-100 border border-earth-200 rounded-xl px-2.5 py-1.5">
+            <svg class="w-4 h-4 text-forest-700 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <label for="headerDistrictSelect" id="districtLabel" class="text-xs font-bold text-stone-600 hidden md:inline">District:</label>
+            <select id="headerDistrictSelect" aria-label="Select Sri Lankan District" class="bg-transparent text-xs sm:text-sm font-bold text-stone-900 focus:outline-none cursor-pointer pr-1"></select>
+          </div>
+
+          <!-- Trilingual Switcher: EN | සිං | தமிழ் -->
+          <div class="inline-flex items-center rounded-xl bg-earth-100 p-1 border border-earth-200" role="group" aria-label="Language toggle">
+            <button type="button" data-lang="en" class="lang-btn px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer bg-forest-700 text-white shadow-2xs">EN</button>
+            <button type="button" data-lang="si" class="lang-btn px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer text-stone-700 hover:text-stone-900">සිං</button>
+            <button type="button" data-lang="ta" class="lang-btn px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer text-stone-700 hover:text-stone-900">தமிழ்</button>
+          </div>
+
+          <!-- Slide-out Basket Trigger -->
+          <button id="openCartBtn" type="button" class="relative inline-flex items-center gap-2 bg-forest-700 hover:bg-forest-800 active:scale-[0.99] text-white font-bold text-xs sm:text-sm px-3.5 sm:px-4 py-2.5 rounded-xl shadow-xs transition cursor-pointer">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="8" cy="21" r="1" />
+              <circle cx="19" cy="21" r="1" />
+              <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+            </svg>
+            <span id="basketBtnText">Basket</span>
+            <span id="cartBadge" class="inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-full text-xs font-extrabold bg-amber-300 text-stone-900 num-lkr">0</span>
+            <span id="headerPriceAlertDot" class="hidden w-2.5 h-2.5 rounded-full bg-rose-400 ring-2 ring-white" title="Basket prices updated live"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Market Price Engine Bar -->
+      <div class="mt-3 pt-2.5 border-t border-earth-200 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+          <span class="inline-flex items-center gap-1.5 font-extrabold text-forest-900 bg-forest-50 border border-forest-200 px-2.5 py-1 rounded-lg">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+            </span>
+            <span id="marketStatusText">Live Market Engine Active</span>
+          </span>
+
+          <span class="text-stone-600 font-medium num-lkr">
+            <span id="lastUpdatedPrefix">Updated:</span>
+            <strong id="lastUpdatedClock" class="text-stone-900">--:--:--</strong>
+          </span>
+
+          <span id="lastFeedSummaryBadge" class="hidden px-2 py-0.5 rounded-full bg-amber-100 text-amber-950 font-bold border border-amber-200 num-lkr"></span>
+          <span id="autoRefreshCountdown" class="hidden text-forest-800 font-extrabold num-lkr"></span>
+        </div>
+
+        <!-- Admin-only controls (visible & active only when authenticated as Admin) -->
+        <div id="adminControlsGroup" class="hidden flex-wrap items-center gap-2">
+          <!-- Auto-Refresh (every 15 seconds) Toggle -->
+          <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-earth-100 border border-earth-200 cursor-pointer select-none font-bold text-stone-800 hover:border-forest-600 transition">
+            <input id="autoRefreshToggle" type="checkbox" class="sr-only peer" />
+            <span class="w-8 h-4.5 bg-stone-300 peer-checked:bg-forest-600 rounded-full relative transition-colors flex items-center px-0.5">
+              <span id="autoRefreshKnob" class="w-3.5 h-3.5 bg-white rounded-full shadow-xs transition-transform"></span>
+            </span>
+            <span id="autoRefreshLabel">Auto-Refresh (15s)</span>
+          </label>
+
+          <!-- Simulate Market Feed Button -->
+          <button id="simulateFeedBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 active:scale-[0.99] text-amber-950 font-extrabold border border-amber-300 transition cursor-pointer">
+            <span>📡</span>
+            <span id="simulateFeedBtnText">Simulate Market Feed</span>
+          </button>
+
+          <!-- Live Price Manager Modal Button -->
+          <button id="openPriceManagerBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-forest-900 hover:bg-forest-800 text-white font-bold transition cursor-pointer">
+            <span>⚙️</span>
+            <span id="priceManagerBtnText">Live Price Manager</span>
+          </button>
+        </div>
+
+        <!-- Visitor mode notice -->
+        <div id="othersModeHint" class="text-[11px] font-semibold text-stone-500">
+          <span id="othersModeNoticeText">Viewing live market rates as Others • Switch to Admin to manage prices</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Storefront Content -->
+  <main id="top" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+    <!-- Hero Banner -->
+    <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-forest-950 via-forest-900 to-emerald-900 text-white shadow-md mb-7 p-6 sm:p-8 border border-forest-800">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        <div class="lg:col-span-8 space-y-3">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-300/40 text-amber-200 text-xs font-extrabold tracking-wide">
+            <span>🇱🇰</span>
+            <span id="heroBadgeText">LANKA VEGE • FREE (NEGOTIABLE) DELIVERY ACROSS SRI LANKA</span>
+          </div>
+          <h1 id="heroTitle" class="text-2xl sm:text-4xl font-black leading-tight tracking-tight">
+            Fresh Sri Lankan Vegetables with Live Prices &amp; Free (Negotiable) Delivery.
+          </h1>
+          <p id="heroSubtitle" class="text-emerald-100/90 text-sm sm:text-base leading-relaxed max-w-2xl">
+            Browse all 19 Sri Lankan vegetables across upcountry, lowcountry, leafy greens, and spices &amp; roots with custom artwork, multi-pack selectors, sparkline price trends, and Free (Negotiable) delivery across all 25 districts.
+          </p>
+        </div>
+
+        <div class="lg:col-span-4 bg-white/10 backdrop-blur-xs border border-white/15 rounded-2xl p-4 sm:p-5 space-y-2.5">
+          <div id="heroActiveDistrictLabel" class="text-[11px] uppercase tracking-wider text-emerald-200 font-bold">
+            Selected Delivery District
+          </div>
+          <div id="heroActiveDistrictName" class="text-xl font-black text-white">Colombo</div>
+          <div id="heroActiveDistrictEta" class="text-xs text-emerald-100">Western Province • Free (Negotiable) island-wide delivery</div>
+          <div class="pt-2 border-t border-white/15 flex items-center justify-between text-xs">
+            <span id="heroDeliveryFeeCaption" class="text-emerald-200 font-medium">Delivery Charge:</span>
+            <span id="heroDeliveryFeeValue" class="font-black text-amber-300 text-sm">Free (Negotiable)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Search, Sort & Category Filter Section -->
+    <section class="bg-white rounded-2xl border border-earth-200 p-4 mb-5 shadow-2xs space-y-3.5">
+      <div class="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+        <!-- Search Input -->
+        <div class="relative flex-1">
+          <svg class="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            id="searchInput"
+            type="search"
+            placeholder="Search vegetables (Carrot, Beans, Beetroot, Murunga, Gotukola, Kankun)..."
+            class="w-full pl-10 pr-9 py-2.5 rounded-xl bg-earth-50 border border-earth-200 focus:bg-white focus:border-forest-600 focus:ring-2 focus:ring-forest-600/20 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none transition"
+          />
+          <button id="clearSearchBtn" type="button" title="Clear search" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs font-bold px-1.5 py-0.5 rounded cursor-pointer">
+            ✕
+          </button>
+        </div>
+
+        <!-- Sort Selector -->
+        <div class="flex items-center gap-2 bg-earth-50 border border-earth-200 rounded-xl px-3 py-2">
+          <label for="sortSelect" id="sortLabel" class="text-xs font-bold text-stone-600 shrink-0">Sort:</label>
+          <select id="sortSelect" class="bg-transparent text-xs sm:text-sm font-bold text-stone-900 focus:outline-none cursor-pointer">
+            <option value="featured">Featured</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+            <option value="name-asc">Name A–Z</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Category Filter Tabs -->
+      <div id="categoryTabs" class="flex items-center gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Vegetable categories"></div>
+    </section>
+
+    <!-- Catalog Header & Count -->
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+      <div>
+        <span id="catalogEyebrow" class="text-xs font-extrabold uppercase tracking-wider text-forest-700">Sri Lankan Staples &amp; Greens</span>
+        <h2 id="catalogHeading" class="text-xl sm:text-2xl font-black text-stone-950">Lanka Vege Market Catalog</h2>
+      </div>
+      <div class="flex items-center gap-2 text-xs sm:text-sm text-stone-600 font-semibold">
+        <span><span id="showingPrefix">Showing</span> <strong id="resultsCount" class="text-stone-950 num-lkr">19</strong> <span id="itemsSuffix">vegetables</span></span>
+        <span class="hidden sm:inline text-stone-300">•</span>
+        <span class="hidden sm:inline text-forest-700 font-bold" id="catalogFreeBadge">Free (Negotiable)</span>
+      </div>
+    </div>
+
+    <!-- Vegetable Cards Grid -->
+    <section id="vegetableGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></section>
+
+    <!-- Empty Search/Filter State -->
+    <div id="emptyState" class="hidden text-center py-16 px-4 bg-white rounded-3xl border border-earth-200 mt-4">
+      <div class="w-14 h-14 rounded-2xl bg-earth-100 text-forest-700 flex items-center justify-center mx-auto mb-3 text-2xl font-bold">🌿</div>
+      <h3 id="emptyStateTitle" class="text-lg font-extrabold text-stone-900">No vegetables match your filter</h3>
+      <p id="emptyStateDesc" class="text-sm text-stone-500 mt-1 max-w-md mx-auto">Try searching another vegetable name or choose All to view the full catalog.</p>
+      <button id="resetFiltersBtn" type="button" class="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-forest-700 hover:bg-forest-800 text-white text-xs font-bold cursor-pointer transition">
+        <span id="resetFiltersBtnText">Reset Filters</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-forest-950 text-emerald-100 mt-14 border-t border-forest-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs sm:text-sm">
+      <div class="flex flex-wrap items-center gap-2.5">
+        <span class="font-black text-white text-base">Lanka Vege</span>
+        <span class="text-amber-300 font-bold">• Free (Negotiable) Delivery</span>
+        <span class="text-emerald-200/80">• subodaamrathunga80@gmail.com • 0716692129 • 0718150066</span>
+      </div>
+      <p id="footerText" class="text-emerald-200/80 text-center sm:text-right">
+        Lanka Vege • Live LKR market rates across Sri Lanka. Delivery: Free (Negotiable).
+      </p>
+    </div>
+  </footer>
+
+  <!-- ===================================================================== -->
+  <!-- ADMIN PASSWORD UNLOCK MODAL                                           -->
+  <!-- ===================================================================== -->
+  <div id="adminLoginBackdrop" class="modal-backdrop fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-[2px] flex items-center justify-center p-4">
+    <div class="modal-card w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-earth-200 overflow-hidden">
+      <div class="px-6 py-4 bg-forest-950 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span>🔐</span>
+          <h2 id="adminLoginTitle" class="text-base font-black">Admin Unlock</h2>
+        </div>
+        <button id="closeAdminLoginBtn" type="button" aria-label="Close Admin login" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <form id="adminLoginForm" class="p-6 space-y-4">
+        <div>
+          <label for="adminPasswordInput" id="adminPasswordLabel" class="block text-xs font-bold text-stone-700 mb-1.5">
+            Administrator Password
+          </label>
+          <div class="relative flex items-center">
+            <input
+              id="adminPasswordInput"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Enter password"
+              class="w-full pl-3.5 pr-11 py-2.5 rounded-xl border border-earth-200 focus:border-forest-600 focus:ring-2 focus:ring-forest-600/20 text-sm text-stone-950 focus:outline-none"
+            />
+            <button
+              id="togglePasswordVisibilityBtn"
+              type="button"
+              aria-label="Show or hide password"
+              class="absolute right-2.5 text-stone-500 hover:text-stone-900 text-xs font-bold px-1.5 py-1 rounded cursor-pointer"
+            >
+              👁️
+            </button>
+          </div>
+        </div>
+
+        <p id="adminLoginError" class="hidden text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+          Incorrect password. Please try again.
+        </p>
+
+        <div class="flex items-center justify-end gap-2 pt-1">
+          <button
+            id="cancelAdminLoginBtn"
+            type="button"
+            class="px-4 py-2.5 rounded-xl bg-earth-100 hover:bg-earth-200 text-stone-800 text-xs font-extrabold cursor-pointer transition"
+          >
+            <span id="cancelAdminBtnText">Cancel</span>
+          </button>
+          <button
+            id="submitAdminLoginBtn"
+            type="submit"
+            class="px-4 py-2.5 rounded-xl bg-forest-700 hover:bg-forest-800 text-white text-xs font-extrabold cursor-pointer transition"
+          >
+            <span id="unlockAdminBtnText">Unlock Admin</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- SLIDE-OUT BASKET DRAWER                                              -->
+  <!-- ===================================================================== -->
+  <div id="cartDrawerBackdrop" class="drawer-backdrop fixed inset-0 z-40 bg-stone-950/50 backdrop-blur-[1px] flex justify-end">
+    <aside id="cartDrawer" class="drawer-panel w-full max-w-md bg-white h-full shadow-2xl flex flex-col" aria-label="Lanka Vege Basket">
+      <!-- Drawer Header -->
+      <div class="px-5 py-4 border-b border-earth-200 flex items-center justify-between bg-earth-50">
+        <div>
+          <h2 id="drawerTitle" class="text-lg font-black text-stone-950">Lanka Vege Basket</h2>
+          <p id="drawerDistrictSub" class="text-xs font-bold text-forest-700">Colombo • Free (Negotiable)</p>
+        </div>
+        <button id="closeCartBtn" type="button" aria-label="Close basket" class="w-9 h-9 rounded-xl bg-white border border-earth-200 hover:bg-stone-100 text-stone-700 flex items-center justify-center font-bold cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <!-- Free (Negotiable) Delivery Bar -->
+      <div class="px-5 py-3 bg-forest-50 border-b border-forest-200">
+        <div class="flex items-center justify-between text-xs font-extrabold text-forest-900 mb-1.5">
+          <span id="freeUnlockedTitle">✓ Delivery: Free (Negotiable)</span>
+          <span class="px-2 py-0.5 rounded-full bg-forest-700 text-white">FREE (NEGOTIABLE)</span>
+        </div>
+        <div class="w-full h-2 rounded-full bg-forest-200 overflow-hidden">
+          <div class="h-full w-full bg-gradient-to-r from-forest-600 to-emerald-500 rounded-full"></div>
+        </div>
+        <p id="freeUnlockedSub" class="text-[11px] text-forest-800 mt-1 font-medium">
+          All 25 Sri Lankan districts available with Free (Negotiable) delivery arrangements.
+        </p>
+      </div>
+
+      <!-- Automatic Basket Price Recalculation Alert -->
+      <div id="basketPriceAlert" class="hidden px-5 py-3 bg-amber-50 border-b border-amber-200 text-xs text-amber-950 flex items-start justify-between gap-2">
+        <div>
+          <strong id="basketPriceAlertTitle" class="block font-extrabold text-amber-900">Basket Prices Updated Live</strong>
+          <span id="basketPriceAlertDetail" class="text-amber-800 num-lkr"></span>
+        </div>
+        <button id="dismissBasketAlertBtn" type="button" aria-label="Dismiss price alert" class="text-amber-800 hover:text-amber-950 font-bold px-1 cursor-pointer">✕</button>
+      </div>
+
+      <!-- Basket Items List -->
+      <div id="cartItemsList" class="flex-1 overflow-y-auto px-5 py-4 space-y-3"></div>
+
+      <!-- Delivery / Negotiation Note, LKR Totals & Checkout CTA -->
+      <div class="p-5 border-t border-earth-200 bg-earth-50 space-y-3">
+        <div>
+          <label for="deliveryNoteInput" id="deliveryNoteLabel" class="block text-xs font-bold text-stone-700 mb-1">
+            Delivery / Negotiation Note
+          </label>
+          <input
+            id="deliveryNoteInput"
+            type="text"
+            placeholder="e.g., Discuss delivery time/drop-off, fresh pods, call on arrival..."
+            class="w-full px-3 py-2 rounded-xl bg-white border border-earth-200 focus:border-forest-600 focus:outline-none text-xs text-stone-900"
+          />
+        </div>
+
+        <div class="space-y-1.5 text-sm pt-1">
+          <div class="flex items-center justify-between text-stone-600">
+            <span id="drawerSubtotalLabel">Subtotal</span>
+            <span id="drawerSubtotalVal" class="font-bold text-stone-900 num-lkr">LKR 0</span>
+          </div>
+          <div class="flex items-center justify-between text-forest-700 font-bold">
+            <span id="drawerDeliveryLabel">Delivery (All 25 Districts)</span>
+            <span id="drawerDeliveryVal" class="num-lkr">Free (Negotiable)</span>
+          </div>
+          <div class="flex items-center justify-between text-base font-black text-stone-950 pt-2 border-t border-earth-200">
+            <span id="drawerTotalLabel">Total</span>
+            <span id="drawerTotalVal" class="text-forest-800 num-lkr">LKR 0</span>
+          </div>
+        </div>
+
+        <button id="openCheckoutBtn" type="button" disabled class="w-full py-3 px-4 rounded-xl bg-forest-700 hover:bg-forest-800 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-extrabold text-sm shadow-xs transition cursor-pointer">
+          <span id="proceedCheckoutBtnText">Proceed to Checkout</span>
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- CHECKOUT MODAL                                                        -->
+  <!-- ===================================================================== -->
+  <div id="checkoutModalBackdrop" class="modal-backdrop fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-[2px] flex items-center justify-center p-4 overflow-y-auto">
+    <div class="modal-card w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-earth-200 overflow-hidden my-auto">
+      <div class="px-6 py-4 bg-forest-950 text-white flex items-center justify-between">
+        <div>
+          <h2 id="checkoutTitle" class="text-lg font-black">Lanka Vege — Checkout</h2>
+          <p id="checkoutSubtitle" class="text-xs text-amber-300 font-semibold">FREE (NEGOTIABLE) DELIVERY ACROSS ALL 25 SRI LANKAN DISTRICTS</p>
+        </div>
+        <button id="closeCheckoutBtn" type="button" aria-label="Close checkout modal" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <form id="checkoutForm" class="p-6 space-y-4">
+        <!-- Order Summary -->
+        <div class="bg-earth-50 border border-earth-200 rounded-2xl p-4 space-y-2 text-xs sm:text-sm">
+          <div class="flex items-center justify-between font-extrabold text-stone-950">
+            <span id="checkoutSummaryHeading">Order Summary</span>
+            <span id="checkoutItemCountBadge" class="px-2.5 py-0.5 rounded-full bg-forest-100 text-forest-800 text-xs num-lkr">0 items</span>
+          </div>
+          <div id="checkoutItemsPreview" class="max-h-32 overflow-y-auto divide-y divide-earth-200 text-xs text-stone-700"></div>
+          <div id="checkoutNotePreview" class="hidden text-[11px] text-stone-600 italic pt-1"></div>
+          <div class="pt-2 border-t border-earth-200 flex items-center justify-between text-xs text-stone-600">
+            <span id="checkoutSubtotalLabel">Subtotal</span>
+            <span id="checkoutSubtotalVal" class="font-bold text-stone-900 num-lkr">LKR 0</span>
+          </div>
+          <div class="flex items-center justify-between text-xs font-bold text-forest-700">
+            <span id="checkoutDeliveryLabel">Delivery Fee (Island-Wide)</span>
+            <span id="checkoutDeliveryVal" class="num-lkr">Free (Negotiable)</span>
+          </div>
+          <div class="pt-1.5 border-t border-earth-200 flex items-center justify-between text-sm font-black text-stone-950">
+            <span id="checkoutTotalLabel">Total Payable</span>
+            <span id="checkoutTotalVal" class="text-forest-800 text-base num-lkr">LKR 0</span>
+          </div>
+        </div>
+
+        <!-- Customer Name & Phone -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label for="custName" id="labelCustName" class="block text-xs font-bold text-stone-700 mb-1">Full Name *</label>
+            <input id="custName" name="custName" type="text" required placeholder="e.g., Nimal Perera" class="w-full px-3.5 py-2.5 rounded-xl border border-earth-200 focus:border-forest-600 focus:outline-none text-sm" />
+          </div>
+          <div>
+            <label for="custPhone" id="labelCustPhone" class="block text-xs font-bold text-stone-700 mb-1">Phone Number (Sri Lanka) *</label>
+            <input id="custPhone" name="custPhone" type="tel" required placeholder="e.g., 071 669 2129" class="w-full px-3.5 py-2.5 rounded-xl border border-earth-200 focus:border-forest-600 focus:outline-none text-sm" />
+          </div>
+        </div>
+
+        <!-- Sri Lankan District & Preferred Delivery Time Slot -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label for="checkoutDistrictSelect" id="labelCheckoutDistrict" class="block text-xs font-bold text-stone-700 mb-1">Sri Lankan District (Free Negotiable) *</label>
+            <select id="checkoutDistrictSelect" name="checkoutDistrictSelect" class="w-full px-3.5 py-2.5 rounded-xl border border-earth-200 bg-white focus:border-forest-600 focus:outline-none text-sm font-semibold"></select>
+          </div>
+          <div>
+            <label for="deliverySlotSelect" id="labelDeliverySlot" class="block text-xs font-bold text-stone-700 mb-1">Preferred Delivery Time Slot *</label>
+            <select id="deliverySlotSelect" name="deliverySlotSelect" class="w-full px-3.5 py-2.5 rounded-xl border border-earth-200 bg-white focus:border-forest-600 focus:outline-none text-sm font-semibold">
+              <option value="Morning (7:00 AM – 11:00 AM)">Morning (7:00 AM – 11:00 AM)</option>
+              <option value="Afternoon (12:00 PM – 4:00 PM)">Afternoon (12:00 PM – 4:00 PM)</option>
+              <option value="Evening (5:00 PM – 8:00 PM)">Evening (5:00 PM – 8:00 PM)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Delivery Address -->
+        <div>
+          <label for="custAddress" id="labelCustAddress" class="block text-xs font-bold text-stone-700 mb-1">Delivery Address *</label>
+          <textarea id="custAddress" name="custAddress" rows="2" required placeholder="Street / Lane / Town / Landmark in Sri Lanka..." class="w-full px-3.5 py-2.5 rounded-xl border border-earth-200 focus:border-forest-600 focus:outline-none text-sm"></textarea>
+        </div>
+
+        <!-- Payment Method -->
+        <div>
+          <span id="labelPaymentMethod" class="block text-xs font-bold text-stone-700 mb-1.5">Payment Method</span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="flex items-start gap-2.5 p-3 rounded-xl border border-earth-200 bg-earth-50/70 cursor-pointer hover:border-forest-600 transition">
+              <input type="radio" name="paymentMethod" value="Cash on Delivery" checked class="mt-1 accent-emerald-700" />
+              <span class="text-xs">
+                <strong id="payCodTitle" class="block text-stone-950">Cash on Delivery</strong>
+                <span id="payCodSub" class="text-stone-500">Pay cash when vegetables arrive</span>
+              </span>
+            </label>
+            <label class="flex items-start gap-2.5 p-3 rounded-xl border border-earth-200 bg-earth-50/70 cursor-pointer hover:border-forest-600 transition">
+              <input type="radio" name="paymentMethod" value="Bank Transfer / LankaQR" class="mt-1 accent-emerald-700" />
+              <span class="text-xs">
+                <strong id="payQrTitle" class="block text-stone-950">Bank Transfer / LankaQR</strong>
+                <span id="payQrSub" class="text-stone-500">Instant LankaQR or bank transfer</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <p id="checkoutErrorMsg" class="hidden text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2"></p>
+
+        <button id="submitOrderBtn" type="submit" class="w-full py-3.5 px-5 rounded-xl bg-forest-700 hover:bg-forest-800 text-white font-extrabold text-sm shadow-sm cursor-pointer transition">
+          <span id="confirmOrderBtnText">Place Order • Free (Negotiable) Delivery</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- INSTANT ORDER CONFIRMATION RECEIPT MODAL                              -->
+  <!-- ===================================================================== -->
+  <div id="confirmationModalBackdrop" class="modal-backdrop fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-[2px] flex items-center justify-center p-4 overflow-y-auto">
+    <div class="modal-card w-full max-w-md bg-white rounded-3xl shadow-2xl border border-earth-200 p-6 text-center space-y-4 my-auto">
+      <div class="w-14 h-14 rounded-2xl bg-forest-100 text-forest-700 flex items-center justify-center mx-auto text-2xl font-black">✓</div>
+      <div>
+        <span id="confirmedRefBadge" class="inline-block text-xs font-extrabold px-3 py-1 rounded-full bg-forest-100 text-forest-800 mb-1.5 num-lkr">Lanka Vege #LV-10001</span>
+        <h3 id="confirmedTitle" class="text-xl font-black text-stone-950">Order Confirmed — Free (Negotiable)!</h3>
+        <p id="confirmedDesc" class="text-sm text-stone-600 mt-1">
+          Thank you for ordering with Lanka Vege. Your order is recorded with Free (Negotiable) delivery.
+        </p>
+      </div>
+      <div id="confirmedReceiptBox" class="bg-earth-50 border border-earth-200 rounded-2xl p-4 text-left text-xs text-stone-700 space-y-1.5"></div>
+      <button id="closeConfirmationBtn" type="button" class="w-full py-3 px-4 rounded-xl bg-forest-700 hover:bg-forest-800 text-white font-extrabold text-sm cursor-pointer transition">
+        <span id="continueShoppingBtnText">Continue Shopping</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- LIVE PRICE MANAGER MODAL (ADMIN ONLY)                                 -->
+  <!-- ===================================================================== -->
+  <div id="priceManagerBackdrop" class="modal-backdrop fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-[2px] flex items-center justify-center p-4 overflow-y-auto">
+    <div class="modal-card w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-earth-200 overflow-hidden my-auto flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 bg-forest-950 text-white flex items-center justify-between shrink-0">
+        <div>
+          <h2 id="pmModalTitle" class="text-lg font-black">Lanka Vege — Live Price Manager</h2>
+          <p id="pmModalSubtitle" class="text-xs text-emerald-300 font-medium">
+            Admin controls: edit individual vegetable prices or apply bulk % adjustments
+          </p>
+        </div>
+        <button id="closePriceManagerBtn" type="button" aria-label="Close Live Price Manager" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <!-- Bulk % Adjustment Controls -->
+      <div class="px-6 py-3.5 bg-earth-50 border-b border-earth-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <label for="bulkCategorySelect" class="font-bold text-stone-700">Category:</label>
+          <select id="bulkCategorySelect" class="px-2.5 py-1.5 rounded-lg border border-earth-200 bg-white font-bold text-stone-800 focus:outline-none">
+            <option value="all">All Categories</option>
+            <option value="upcountry">Upcountry</option>
+            <option value="lowcountry">Lowcountry</option>
+            <option value="leafy">Leafy Greens</option>
+            <option value="spices-roots">Spices &amp; Roots</option>
+          </select>
+
+          <label for="bulkPercentInput" class="font-bold text-stone-700 ml-1">Bulk %:</label>
+          <input id="bulkPercentInput" type="number" step="1" value="5" class="w-20 px-2.5 py-1.5 rounded-lg border border-earth-200 bg-white font-bold text-stone-900 focus:outline-none num-lkr" />
+          <button id="applyBulkPercentBtn" type="button" class="px-3 py-1.5 rounded-lg bg-forest-700 hover:bg-forest-800 text-white font-bold cursor-pointer transition">
+            Apply %
+          </button>
+        </div>
+
+        <button id="resetBaselinePricesBtn" type="button" class="px-3 py-1.5 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold cursor-pointer transition">
+          Reset Baseline Prices
+        </button>
+      </div>
+
+      <!-- Individual Vegetable Price Editors -->
+      <div id="priceManagerList" class="p-5 overflow-y-auto space-y-2.5 flex-1"></div>
+
+      <div class="px-6 py-3.5 bg-earth-50 border-t border-earth-200 flex items-center justify-between text-xs shrink-0">
+        <span class="text-stone-600 font-medium">Changes apply immediately to catalog cards, sparklines, and active baskets.</span>
+        <button id="donePriceManagerBtn" type="button" class="px-4 py-2 rounded-xl bg-forest-700 hover:bg-forest-800 text-white font-extrabold cursor-pointer transition">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Banner -->
+  <div id="toastBanner" class="toast-banner fixed bottom-5 right-5 z-50 bg-forest-950 text-white border border-forest-700 shadow-xl rounded-2xl px-4 py-3 text-xs font-bold flex items-center gap-2 max-w-sm">
+    <span>✓</span>
+    <span id="toastMessage">Copied</span>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. ALL 25 SRI LANKAN DISTRICTS (FREE (NEGOTIABLE) DELIVERY)
+    // =========================================================================
+    const SRI_LANKA_DISTRICTS = [
+      { id: 'colombo', name: 'Colombo', eta: 'Western Province • Free (Negotiable) delivery' },
+      { id: 'gampaha', name: 'Gampaha', eta: 'Western Province • Free (Negotiable) delivery' },
+      { id: 'kalutara', name: 'Kalutara', eta: 'Western Province • Free (Negotiable) delivery' },
+      { id: 'kandy', name: 'Kandy', eta: 'Central Province • Free (Negotiable) delivery' },
+      { id: 'matale', name: 'Matale', eta: 'Central Province • Free (Negotiable) delivery' },
+      { id: 'nuwara-eliya', name: 'Nuwara Eliya', eta: 'Central Highland Farm Zone • Free (Negotiable)' },
+      { id: 'galle', name: 'Galle', eta: 'Southern Province • Free (Negotiable) delivery' },
+      { id: 'matara', name: 'Matara', eta: 'Southern Province • Free (Negotiable) delivery' },
+      { id: 'hambantota', name: 'Hambantota', eta: 'Southern Province • Free (Negotiable) delivery' },
+      { id: 'jaffna', name: 'Jaffna', eta: 'Northern Province • Free (Negotiable) delivery' },
+      { id: 'kilinochchi', name: 'Kilinochchi', eta: 'Northern Province • Free (Negotiable) delivery' },
+      { id: 'mannar', name: 'Mannar', eta: 'Northern Province • Free (Negotiable) delivery' },
+      { id: 'vavuniya', name: 'Vavuniya', eta: 'Northern Province • Free (Negotiable) delivery' },
+      { id: 'mullaitivu', name: 'Mullaitivu', eta: 'Northern Province • Free (Negotiable) delivery' },
+      { id: 'batticaloa', name: 'Batticaloa', eta: 'Eastern Province • Free (Negotiable) delivery' },
+      { id: 'ampara', name: 'Ampara', eta: 'Eastern Province • Free (Negotiable) delivery' },
+      { id: 'trincomalee', name: 'Trincomalee', eta: 'Eastern Province • Free (Negotiable) delivery' },
+      { id: 'kurunegala', name: 'Kurunegala', eta: 'North Western Province • Free (Negotiable)' },
+      { id: 'puttalam', name: 'Puttalam', eta: 'North Western Province • Free (Negotiable)' },
+      { id: 'anuradhapura', name: 'Anuradhapura', eta: 'North Central Province • Free (Negotiable)' },
+      { id: 'polonnaruwa', name: 'Polonnaruwa', eta: 'North Central Province • Free (Negotiable)' },
+      { id: 'badulla', name: 'Badulla', eta: 'Uva Province • Free (Negotiable) delivery' },
+      { id: 'monaragala', name: 'Monaragala', eta: 'Uva Province • Free (Negotiable) delivery' },
+      { id: 'ratnapura', name: 'Ratnapura', eta: 'Sabaragamuwa Province • Free (Negotiable)' },
+      { id: 'kegalle', name: 'Kegalle', eta: 'Sabaragamuwa Province • Free (Negotiable)' }
+    ];
+
+    // =========================================================================
+    // 2. CATEGORIES & ALL 19 SRI LANKAN VEGETABLES
+    // =========================================================================
+    const CATEGORIES = [
+      { id: 'all', en: 'All', si: 'සියල්ල', ta: 'அனைத்தும்', icon: '🧺' },
+      { id: 'upcountry', en: 'Upcountry', si: 'උඩරට', ta: 'மலைநாட்டு', icon: '🏔️' },
+      { id: 'lowcountry', en: 'Lowcountry', si: 'පහතරට', ta: 'தாழ்நாட்டு', icon: '🌾' },
+      { id: 'leafy', en: 'Leafy Greens', si: 'පලා වර්ග', ta: 'கீரை வகைகள்', icon: '🌿' },
+      { id: 'spices-roots', en: 'Spices & Roots', si: 'කුළුබඩු සහ අල', ta: 'மசாலா & கிழங்கு', icon: '🫚' }
+    ];
+
+    const VEGETABLES = [
+      {
+        id: 'carrot',
+        category: 'upcountry',
+        en: 'Carrot',
+        si: 'කැරට්',
+        ta: 'கேரட்',
+        origin: 'Nuwara Eliya',
+        options: [
+          { label: '250g', price: 190 },
+          { label: '500g', price: 360 },
+          { label: '1kg', price: 700 }
+        ]
+      },
+      {
+        id: 'beans',
+        category: 'upcountry',
+        en: 'Beans',
+        si: 'බෝංචි',
+        ta: 'போஞ்சி',
+        origin: 'Badulla',
+        options: [
+          { label: '250g', price: 220 },
+          { label: '500g', price: 420 },
+          { label: '1kg', price: 820 }
+        ]
+      },
+      {
+        id: 'beetroot',
+        category: 'upcountry',
+        en: 'Beetroot',
+        si: 'බීට්රූට්',
+        ta: 'பீட்ரூட்',
+        origin: 'Nuwara Eliya',
+        options: [
+          { label: '250g', price: 170 },
+          { label: '500g', price: 320 },
+          { label: '1kg', price: 620 }
+        ]
+      },
+      {
+        id: 'cabbage',
+        category: 'upcountry',
+        en: 'Cabbage',
+        si: 'ගෝවා',
+        ta: 'கோவா',
+        origin: 'Keppetipola',
+        options: [
+          { label: '250g', price: 140 },
+          { label: '500g', price: 260 },
+          { label: '1kg', price: 500 }
+        ]
+      },
+      {
+        id: 'tomato',
+        category: 'upcountry',
+        en: 'Tomato',
+        si: 'තක්කාලි',
+        ta: 'தக்காளி',
+        origin: 'Matale',
+        options: [
+          { label: '250g', price: 150 },
+          { label: '500g', price: 280 },
+          { label: '1kg', price: 540 }
+        ]
+      },
+      {
+        id: 'brinjal',
+        category: 'lowcountry',
+        en: 'Brinjal / Eggplant',
+        si: 'වම්බටු',
+        ta: 'கத்தரிக்காய்',
+        origin: 'Dambulla',
+        options: [
+          { label: '250g', price: 150 },
+          { label: '500g', price: 280 },
+          { label: '1kg', price: 540 }
+        ]
+      },
+      {
+        id: 'okra',
+        category: 'lowcountry',
+        en: 'Okra / Bandakka',
+        si: 'බණ්ඩක්කා',
+        ta: 'வெண்டைக்காய்',
+        origin: 'Kurunegala',
+        options: [
+          { label: '250g', price: 140 },
+          { label: '500g', price: 260 },
+          { label: '1kg', price: 500 }
+        ]
+      },
+      {
+        id: 'bitter-gourd',
+        category: 'lowcountry',
+        en: 'Bitter Gourd / Karavila',
+        si: 'කරවිල',
+        ta: 'பாகற்காய்',
+        origin: 'Anuradhapura',
+        options: [
+          { label: '250g', price: 170 },
+          { label: '500g', price: 320 },
+          { label: '1kg', price: 620 }
+        ]
+      },
+      {
+        id: 'snake-gourd',
+        category: 'lowcountry',
+        en: 'Snake Gourd / Patola',
+        si: 'පතෝල',
+        ta: 'புடலங்காய்',
+        origin: 'Dambulla',
+        options: [
+          { label: '250g', price: 130 },
+          { label: '500g', price: 240 },
+          { label: '1kg', price: 460 }
+        ]
+      },
+      {
+        id: 'ridge-gourd',
+        category: 'lowcountry',
+        en: 'Ridge Gourd / Wetakolu',
+        si: 'වැටකොලු',
+        ta: 'பீர்க்கங்காய்',
+        origin: 'Dambulla',
+        options: [
+          { label: '250g', price: 140 },
+          { label: '500g', price: 260 },
+          { label: '1kg', price: 500 }
+        ]
+      },
+      {
+        id: 'ash-plantain',
+        category: 'lowcountry',
+        en: 'Ash Plantain / Alu Kesel',
+        si: 'අළු කෙසෙල්',
+        ta: 'வாழைக்காய்',
+        origin: 'Ratnapura',
+        options: [
+          { label: '250g', price: 120 },
+          { label: '500g', price: 220 },
+          { label: '1kg', price: 420 }
+        ]
+      },
+      {
+        id: 'pumpkin',
+        category: 'lowcountry',
+        en: 'Pumpkin',
+        si: 'වට්ටක්කා',
+        ta: 'பூசணிக்காய்',
+        origin: 'Monaragala',
+        options: [
+          { label: '250g', price: 100 },
+          { label: '500g', price: 180 },
+          { label: '1kg', price: 340 }
+        ]
+      },
+      {
+        id: 'drumstick',
+        category: 'lowcountry',
+        en: 'Drumstick / Murunga',
+        si: 'මුරුංගා',
+        ta: 'முருங்கைக்காய்',
+        origin: 'Hambantota',
+        options: [
+          { label: '250g', price: 180 },
+          { label: '500g', price: 340 },
+          { label: '1kg', price: 660 }
+        ]
+      },
+      {
+        id: 'green-chilli',
+        category: 'spices-roots',
+        en: 'Green Chilli / Amu Miris',
+        si: 'අමු මිරිස්',
+        ta: 'பச்சை மிளகாய்',
+        origin: 'Dambulla',
+        options: [
+          { label: '250g', price: 180 },
+          { label: '500g', price: 340 },
+          { label: '1kg', price: 660 }
+        ]
+      },
+      {
+        id: 'red-onion',
+        category: 'spices-roots',
+        en: 'Red Onion / Rathu Lunu',
+        si: 'රතු ලූණු',
+        ta: 'சின்ன வெங்காயம்',
+        origin: 'Jaffna',
+        options: [
+          { label: '250g', price: 160 },
+          { label: '500g', price: 310 },
+          { label: '1kg', price: 600 }
+        ]
+      },
+      {
+        id: 'potato',
+        category: 'spices-roots',
+        en: 'Potato',
+        si: 'අර්තාපල්',
+        ta: 'உருளைக்கிழங்கு',
+        origin: 'Nuwara Eliya',
+        options: [
+          { label: '250g', price: 130 },
+          { label: '500g', price: 250 },
+          { label: '1kg', price: 480 }
+        ]
+      },
+      {
+        id: 'gotukola',
+        category: 'leafy',
+        en: 'Gotukola',
+        si: 'ගොටුකොළ',
+        ta: 'வல்லாரை',
+        origin: 'Gampaha',
+        options: [
+          { label: 'bundle', price: 110 },
+          { label: '250g', price: 160 },
+          { label: '500g', price: 300 }
+        ]
+      },
+      {
+        id: 'mukunuwenna',
+        category: 'leafy',
+        en: 'Mukunuwenna',
+        si: 'මුකුණුවැන්න',
+        ta: 'பொன்னாங்கண்ணி',
+        origin: 'Horana',
+        options: [
+          { label: 'bundle', price: 110 },
+          { label: '250g', price: 160 },
+          { label: '500g', price: 300 }
+        ]
+      },
+      {
+        id: 'kankun',
+        category: 'leafy',
+        en: 'Kankun',
+        si: 'කංකුන්',
+        ta: 'கரிசலாங்கண்ணி / கங்கண்',
+        origin: 'Gampaha',
+        options: [
+          { label: 'bundle', price: 120 },
+          { label: '250g', price: 170 },
+          { label: '500g', price: 320 }
+        ]
+      }
+    ];
+
+    // Baseline prices for reset & sparkline history per vegetable
+    const BASELINE_PRICES = {};
+    const priceSeriesByVeg = {}; // { [vegId]: number[] }
+
+    VEGETABLES.forEach((veg, index) => {
+      BASELINE_PRICES[veg.id] = veg.options.map((o) => o.price);
+      const base = veg.options[0].price;
+      const deltaStep = (index % 2 === 0 ? -1 : 1) * Math.max(10, Math.round((base * 0.04) / 10) * 10);
+      priceSeriesByVeg[veg.id] = [
+        Math.max(50, base + deltaStep),
+        Math.max(50, base - Math.round(deltaStep * 0.5)),
+        base
+      ];
+    });
+
+    // =========================================================================
+    // 3. TRILINGUAL TRANSLATIONS (EN / SI / TA)
+    // =========================================================================
+    const TRANSLATIONS = {
+      en: {
+        topNegotiableDeliveryText: 'Delivery: Free (Negotiable) • All 25 Districts',
+        contactLabelPrefix: 'Contact:',
+        headerFreeBadge: 'Free (Negotiable)',
+        brandSubtitle: 'Sri Lankan Farm-to-Door Vegetable Marketplace',
+        roleOthersLabel: 'Others',
+        roleAdminLabel: 'Admin',
+        adminActiveBadgeText: 'Admin Unlocked',
+        lockAdminBtnText: 'Lock Admin',
+        othersModeNoticeText: 'Viewing live market rates as Others • Switch to Admin to manage prices',
+        districtLabel: 'District:',
+        basketBtnText: 'Basket',
+        marketStatusText: 'Live Market Engine Active',
+        lastUpdatedPrefix: 'Updated:',
+        autoRefreshLabel: 'Auto-Refresh (15s)',
+        simulateFeedBtnText: 'Simulate Market Feed',
+        priceManagerBtnText: 'Live Price Manager',
+        heroBadgeText: 'LANKA VEGE • FREE (NEGOTIABLE) DELIVERY ACROSS SRI LANKA',
+        heroTitle: 'Fresh Sri Lankan Vegetables with Live Prices & Free (Negotiable) Delivery.',
+        heroSubtitle: 'Browse all 19 Sri Lankan vegetables across upcountry, lowcountry, leafy greens, and spices & roots with custom artwork, multi-pack selectors, sparkline price trends, and Free (Negotiable) delivery across all 25 districts.',
+        heroActiveDistrictLabel: 'Selected Delivery District',
+        heroDeliveryFeeCaption: 'Delivery Charge:',
+        heroDeliveryFeeValue: 'Free (Negotiable)',
+        searchPlaceholder: 'Search vegetables (Carrot, Beans, Beetroot, Murunga, Gotukola, Kankun)...',
+        sortLabel: 'Sort:',
+        catalogEyebrow: 'Sri Lankan Staples & Greens',
+        catalogHeading: 'Lanka Vege Market Catalog',
+        showingPrefix: 'Showing',
+        itemsSuffix: 'vegetables',
+        catalogFreeBadge: 'Free (Negotiable)',
+        emptyStateTitle: 'No vegetables match your filter',
+        emptyStateDesc: 'Try searching another vegetable name or choose All to view the full catalog.',
+        resetFiltersBtnText: 'Reset Filters',
+        addToBasket: 'Add to Basket',
+        freeDeliveryBadge: 'Free (Negotiable)',
+        drawerTitle: 'Lanka Vege Basket',
+        freeUnlockedTitle: '✓ Delivery: Free (Negotiable)',
+        freeUnlockedSub: 'All 25 Sri Lankan districts available with Free (Negotiable) delivery arrangements.',
+        basketPriceAlertTitle: 'Basket Prices Updated Live',
+        deliveryNoteLabel: 'Delivery / Negotiation Note',
+        deliveryNotePlaceholder: 'e.g., Discuss delivery time/drop-off, fresh pods, call on arrival...',
+        drawerSubtotalLabel: 'Subtotal',
+        drawerDeliveryLabel: 'Delivery (All 25 Districts)',
+        drawerDeliveryVal: 'Free (Negotiable)',
+        drawerTotalLabel: 'Total',
+        proceedCheckoutBtnText: 'Proceed to Checkout',
+        emptyCartTitle: 'Your Lanka Vege basket is empty',
+        emptyCartDesc: 'Choose a pack or bundle on any vegetable card to add items.',
+        checkoutTitle: 'Lanka Vege — Checkout',
+        checkoutSubtitle: 'FREE (NEGOTIABLE) DELIVERY ACROSS ALL 25 SRI LANKAN DISTRICTS',
+        checkoutSummaryHeading: 'Order Summary',
+        checkoutSubtotalLabel: 'Subtotal',
+        checkoutDeliveryLabel: 'Delivery Fee (Island-Wide)',
+        checkoutDeliveryVal: 'Free (Negotiable)',
+        checkoutTotalLabel: 'Total Payable',
+        labelCustName: 'Full Name *',
+        labelCustPhone: 'Phone Number (Sri Lanka) *',
+        labelCheckoutDistrict: 'Sri Lankan District (Free Negotiable) *',
+        labelDeliverySlot: 'Preferred Delivery Time Slot *',
+        labelCustAddress: 'Delivery Address *',
+        labelPaymentMethod: 'Payment Method',
+        payCodTitle: 'Cash on Delivery',
+        payCodSub: 'Pay cash when vegetables arrive',
+        payQrTitle: 'Bank Transfer / LankaQR',
+        payQrSub: 'Instant LankaQR or bank transfer',
+        confirmOrderBtnText: 'Place Order • Free (Negotiable) Delivery',
+        confirmedTitle: 'Order Confirmed — Free (Negotiable)!',
+        confirmedDesc: 'Thank you for ordering with Lanka Vege. Your order is recorded with Free (Negotiable) delivery.',
+        continueShoppingBtnText: 'Continue Shopping',
+        footerText: 'Lanka Vege • Live LKR market rates across Sri Lanka. Delivery: Free (Negotiable).',
+        adminLoginTitle: 'Admin Unlock',
+        adminPasswordLabel: 'Administrator Password',
+        cancelAdminBtnText: 'Cancel',
+        unlockAdminBtnText: 'Unlock Admin'
+      },
+      si: {
+        topNegotiableDeliveryText: 'බෙදාහැරීම: නොමිලේ (සාකච්ඡා කළ හැක) • දිස්ත්‍රික්ක 25',
+        contactLabelPrefix: 'සම්බන්ධතා:',
+        headerFreeBadge: 'නොමිලේ (සාකච්ඡා කළ හැක)',
+        brandSubtitle: 'ශ්‍රී ලංකා ගොවිපළ සිට නිවසට එළවළු වෙළඳපොළ',
+        roleOthersLabel: 'වෙනත්',
+        roleAdminLabel: 'පරිපාලක',
+        adminActiveBadgeText: 'පරිපාලක සක්‍රියයි',
+        lockAdminBtnText: 'අගුළු දමන්න',
+        othersModeNoticeText: 'ඔබ වෙනත් පරිශීලකයෙකු ලෙස නරඹයි • මිල වෙනස් කිරීමට පරිපාලක වෙත යන්න',
+        districtLabel: 'දිස්ත්‍රික්කය:',
+        basketBtnText: 'මල්ල',
+        marketStatusText: 'සජීවී මිල පද්ධතිය සක්‍රියයි',
+        lastUpdatedPrefix: 'යාවත්කාලීන:',
+        autoRefreshLabel: 'ස්වයං-යාවත්කාලීන (15s)',
+        simulateFeedBtnText: 'සජීවී මිල යාවත්කාලීන කරන්න',
+        priceManagerBtnText: 'සජීවී මිල කළමනාකරු',
+        heroBadgeText: 'ලංකා වෙජි • දිස්ත්‍රික්ක 25ටම නොමිලේ (සාකච්ඡා කළ හැක) බෙදාහැරීම',
+        heroTitle: 'සජීවී මිල සහ නොමිලේ (සාකච්ඡා කළ හැක) බෙදාහැරීම සමඟ නැවුම් එළවළු.',
+        heroSubtitle: 'උඩරට, පහතරට, පලා වර්ග, කුළුබඩු සහ අල වර්ග 19ක්, බර විකල්ප, මිල ප්‍රවණතා සහ නොමිලේ (සාකච්ඡා කළ හැක) බෙදාහැරීම.',
+        heroActiveDistrictLabel: 'තෝරාගත් බෙදාහැරීමේ දිස්ත්‍රික්කය',
+        heroDeliveryFeeCaption: 'බෙදාහැරීමේ ගාස්තුව:',
+        heroDeliveryFeeValue: 'නොමිලේ (සාකච්ඡා කළ හැක)',
+        searchPlaceholder: 'එළවළු සොයන්න (කැරට්, බෝංචි, බීට්රූට්, මුරුංගා, ගොටුකොළ, කංකුන්)...',
+        sortLabel: 'පෙළගස්වන්න:',
+        catalogEyebrow: 'ශ්‍රී ලාංකික එළවළු සහ පලා',
+        catalogHeading: 'ලංකා වෙජි එළවළු නාමාවලිය',
+        showingPrefix: 'පෙන්වන්නේ',
+        itemsSuffix: 'එළවළු',
+        catalogFreeBadge: 'නොමිලේ (සාකච්ඡා කළ හැක)',
+        emptyStateTitle: 'ගැළපෙන එළවළු හමු නොවීය',
+        emptyStateDesc: 'වෙනත් නමකින් සොයන්න හෝ සියල්ල තෝරන්න.',
+        resetFiltersBtnText: 'පෙරහන් යළි සකසන්න',
+        addToBasket: 'මල්ලට එක් කරන්න',
+        freeDeliveryBadge: 'නොමිලේ (සාකච්ඡා කළ හැක)',
+        drawerTitle: 'ලංකා වෙජි මල්ල',
+        freeUnlockedTitle: '✓ බෙදාහැරීම: නොමිලේ (සාකච්ඡා කළ හැක)',
+        freeUnlockedSub: 'දිස්ත්‍රික්ක 25ටම නොමිලේ (සාකච්ඡා කළ හැක) බෙදාහැරීමේ පහසුකම.',
+        basketPriceAlertTitle: 'මල්ලේ මිල සජීවීව යාවත්කාලීන විය',
+        deliveryNoteLabel: 'බෙදාහැරීමේ / සාකච්ඡා සටහන',
+        deliveryNotePlaceholder: 'උදා: බෙදාහැරීමේ වේලාව සාකච්ඡා කරන්න, ළපටි කරල්...',
+        drawerSubtotalLabel: 'එකතුව',
+        drawerDeliveryLabel: 'බෙදාහැරීම (දිස්ත්‍රික්ක 25)',
+        drawerDeliveryVal: 'නොමිලේ (සාකච්ඡා කළ හැක)',
+        drawerTotalLabel: 'මුළු මුදල',
+        proceedCheckoutBtnText: 'ඇණවුම සම්පූර්ණ කරන්න',
+        emptyCartTitle: 'ඔබේ ලංකා වෙජි මල්ල හිස්ව ඇත',
+        emptyCartDesc: 'එළවළුවක බර තෝරා මල්ලට එක් කරන්න.',
+        checkoutTitle: 'ලංකා වෙජි — ඇණවුම සම්පූර්ණ කරන්න',
+        checkoutSubtitle: 'දිස්ත්‍රික්ක 25ටම නොමිලේ (සාකච්ඡා කළ හැක) බෙදාහැරීම',
+        checkoutSummaryHeading: 'ඇණවුම් සාරාංශය',
+        checkoutSubtotalLabel: 'එකතුව',
+        checkoutDeliveryLabel: 'බෙදාහැරීමේ ගාස්තුව',
+        checkoutDeliveryVal: 'නොමිලේ (සාකච්ඡා කළ හැක)',
+        checkoutTotalLabel: 'ගෙවිය යුතු මුළු මුදල',
+        labelCustName: 'සම්පූර්ණ නම *',
+        labelCustPhone: 'දුරකථන අංකය (ශ්‍රී ලංකා) *',
+        labelCheckoutDistrict: 'ශ්‍රී ලංකා දිස්ත්‍රික්කය *',
+        labelDeliverySlot: 'බෙදාහැරීමේ වේලාව *',
+        labelCustAddress: 'බෙදාහැරීමේ ලිපිනය *',
+        labelPaymentMethod: 'ගෙවීම් ක්‍රමය',
+        payCodTitle: 'භාණ්ඩ ලැබුණු පසු මුදල් ගෙවීම',
+        payCodSub: 'එළවළු ලැබුණු විට මුදල් ගෙවන්න',
+        payQrTitle: 'බැංකු හුවමාරුව / LankaQR',
+        payQrSub: 'LankaQR හෝ බැංකු ගෙවීම',
+        confirmOrderBtnText: 'ඇණවුම තහවුරු කරන්න • නොමිලේ (සාකච්ඡා කළ හැක)',
+        confirmedTitle: 'ඇණවුම තහවුරු විය — නොමිලේ (සාකච්ඡා කළ හැක)!',
+        confirmedDesc: 'ලංකා වෙජි සමඟ ඇණවුම් කළාට ස්තූතියි. බෙදාහැරීම නොමිලේ (සාකච්ඡා කළ හැක) ලෙස සටහන් කර ඇත.',
+        continueShoppingBtnText: 'තවදුරටත් මිලදී ගන්න',
+        footerText: 'ලංකා වෙජි • සජීවී රුපියල් මිල ගණන්. බෙදාහැරීම: නොමිලේ (සාකච්ඡා කළ හැක).',
+        adminLoginTitle: 'පරිපාලක පිවිසුම',
+        adminPasswordLabel: 'පරිපාලක මුරපදය',
+        cancelAdminBtnText: 'අවලංගු කරන්න',
+        unlockAdminBtnText: 'අගුළු අරින්න'
+      },
+      ta: {
+        topNegotiableDeliveryText: 'டெலிவரி: இலவசம் (பேசிக்கொள்ளலாம்) • 25 மாவட்டங்கள்',
+        contactLabelPrefix: 'தொடர்புக்கு:',
+        headerFreeBadge: 'இலவசம் (பேசிக்கொள்ளலாம்)',
+        brandSubtitle: 'இலங்கை பண்ணையிலிருந்து வீட்டிற்கு காய்கறி சந்தை',
+        roleOthersLabel: 'மற்றவர்கள்',
+        roleAdminLabel: 'நிர்வாகி',
+        adminActiveBadgeText: 'நிர்வாகி செயலில்',
+        lockAdminBtnText: 'பூட்டுக',
+        othersModeNoticeText: 'மற்றவர்களாக நேரடி விலைகளைப் பார்க்கிறீர்கள் • விலைகளை மாற்ற நிர்வாகியாக மாறவும்',
+        districtLabel: 'மாவட்டம்:',
+        basketBtnText: 'கூடை',
+        marketStatusText: 'நேரடி விலை இயந்திரம் செயலில்',
+        lastUpdatedPrefix: 'புதுப்பிப்பு:',
+        autoRefreshLabel: 'தானியங்கு புதுப்பிப்பு (15s)',
+        simulateFeedBtnText: 'நேரடி விலையைப் புதுப்பிக்கவும்',
+        priceManagerBtnText: 'நேரடி விலை மேலாளர்',
+        heroBadgeText: 'லங்கா வெஜ் • 25 மாவட்டங்களுக்கும் இலவசம் (பேசிக்கொள்ளலாம்) டெலிவரி',
+        heroTitle: 'நேரடி விலை மற்றும் இலவசம் (பேசிக்கொள்ளலாம்) டெலிவரியுடன் புதிய காய்கறிகள்.',
+        heroSubtitle: '19 இலங்கை காய்கறிகள், எடைத் தேர்வுகள், விலை வரைபடங்கள் மற்றும் 25 மாவட்டங்களுக்கும் இலவசம் (பேசிக்கொள்ளலாம்) டெலிவரி.',
+        heroActiveDistrictLabel: 'தெரிவு செய்யப்பட்ட டெலிவரி மாவட்டம்',
+        heroDeliveryFeeCaption: 'டெலிவரி கட்டணம்:',
+        heroDeliveryFeeValue: 'இலவசம் (பேசிக்கொள்ளலாம்)',
+        searchPlaceholder: 'காய்கறிகளைத் தேடுக (Carrot, Beans, Beetroot, Murunga, Gotukola, Kankun)...',
+        sortLabel: 'வரிசை:',
+        catalogEyebrow: 'இலங்கை காய்கறிகள் & கீரைகள்',
+        catalogHeading: 'லங்கா வெஜ் காய்கறி பட்டியல்',
+        showingPrefix: 'காட்டப்படுவது',
+        itemsSuffix: 'காய்கறிகள்',
+        catalogFreeBadge: 'இலவசம் (பேசிக்கொள்ளலாம்)',
+        emptyStateTitle: 'பொருத்தமான காய்கறிகள் இல்லை',
+        emptyStateDesc: 'வேறு பெயரில் தேடவும் அல்லது அனைத்தும் என்பதைத் தேர்ந்தெடுக்கவும்.',
+        resetFiltersBtnText: 'வடிப்பான்களை மீட்டமை',
+        addToBasket: 'கூடையில் சேர்',
+        freeDeliveryBadge: 'இலவசம் (பேசிக்கொள்ளலாம்)',
+        drawerTitle: 'லங்கா வெஜ் கூடை',
+        freeUnlockedTitle: '✓ டெலிவரி: இலவசம் (பேசிக்கொள்ளலாம்)',
+        freeUnlockedSub: '25 மாவட்டங்களுக்கும் இலவசம் (பேசிக்கொள்ளலாம்) டெலிவரி வசதி.',
+        basketPriceAlertTitle: 'கூடை விலைகள் நேரடியாகப் புதுப்பிக்கப்பட்டன',
+        deliveryNoteLabel: 'டெலிவரி / பேச்சுவார்த்தை குறிப்பு',
+        deliveryNotePlaceholder: 'எ.கா: டெலிவரி நேரம் பேசிக்கொள்ளலாம், இளசான காய்கறிகள்...',
+        drawerSubtotalLabel: 'கூட்டுத்தொகை',
+        drawerDeliveryLabel: 'டெலிவரி (25 மாவட்டங்கள்)',
+        drawerDeliveryVal: 'இலவசம் (பேசிக்கொள்ளலாம்)',
+        drawerTotalLabel: 'மொத்தம்',
+        proceedCheckoutBtnText: 'செக் அவுட் செல்க',
+        emptyCartTitle: 'உங்கள் லங்கா வெஜ் கூடை காலியாக உள்ளது',
+        emptyCartDesc: 'காய்கறி அட்டையில் எடையைத் தேர்ந்தெடுத்து கூடையில் சேர்க்கவும்.',
+        checkoutTitle: 'லங்கா வெஜ் — செக் அவுட்',
+        checkoutSubtitle: '25 மாவட்டங்களுக்கும் இலவசம் (பேசிக்கொள்ளலாம்) டெலிவரி',
+        checkoutSummaryHeading: 'ஆர்டர் சுருக்கம்',
+        checkoutSubtotalLabel: 'கூட்டுத்தொகை',
+        checkoutDeliveryLabel: 'டெலிவரி கட்டணம்',
+        checkoutDeliveryVal: 'இலவசம் (பேசிக்கொள்ளலாம்)',
+        checkoutTotalLabel: 'செலுத்த வேண்டிய மொத்தம்',
+        labelCustName: 'முழுப் பெயர் *',
+        labelCustPhone: 'கைபேசி எண் (இலங்கை) *',
+        labelCheckoutDistrict: 'இலங்கை மாவட்டம் *',
+        labelDeliverySlot: 'விரும்பிய டெலிவரி நேரப் பகுதி *',
+        labelCustAddress: 'டெலிவரி முகவரி *',
+        labelPaymentMethod: 'பணம் செலுத்தும் முறை',
+        payCodTitle: 'டெலிவரியின் போது பணம்',
+        payCodSub: 'காய்கறிகள் வந்ததும் பணம் செலுத்தவும்',
+        payQrTitle: 'வங்கி இடமாற்றம் / LankaQR',
+        payQrSub: 'LankaQR அல்லது வங்கி மூலம் செலுத்தவும்',
+        confirmOrderBtnText: 'ஆர்டரை உறுதி செய்க • இலவசம் (பேசிக்கொள்ளலாம்)',
+        confirmedTitle: 'ஆர்டர் உறுதி செய்யப்பட்டது — இலவசம் (பேசிக்கொள்ளலாம்)!',
+        confirmedDesc: 'லங்கா வெஜ் ஆர்டருக்கு நன்றி. உங்கள் ஆர்டர் இலவசம் (பேசிக்கொள்ளலாம்) டெலிவரியில் பதிவு செய்யப்பட்டது.',
+        continueShoppingBtnText: 'தொடர்ந்து வாங்கவும்',
+        footerText: 'லங்கா வெஜ் • நேரடி LKR சந்தை விலைகள். டெலிவரி: இலவசம் (பேசிக்கொள்ளலாம்).',
+        adminLoginTitle: 'நிர்வாகி நுழைவு',
+        adminPasswordLabel: 'நிர்வாக கடவுச்சொல்',
+        cancelAdminBtnText: 'ரத்து செய்',
+        unlockAdminBtnText: 'திறக்கவும்'
+      }
+    };
+
+    // =========================================================================
+    // 4. APPLICATION STATE & HELPERS
+    // =========================================================================
+    const ADMIN_SECRET_KEY = '12345678';
+
+    const state = {
+      lang: 'en',
+      role: 'others', // 'others' | 'admin'
+      isAdminAuthenticated: false,
+      districtId: 'colombo',
+      category: 'all',
+      search: '',
+      sort: 'featured',
+      selectedPackIndex: {}, // { [vegId]: number }
+      cart: {}, // { [`${vegId}__${packIdx}`]: qty }
+      deliveryNote: '',
+      priceDeltas: {}, // { [vegId]: { delta: number, pct: number, updatedAt: number } }
+      lastUpdated: new Date(),
+      lastFeedSummary: '',
+      autoRefreshEnabled: false,
+      autoRefreshSecondsLeft: 15,
+      basketAlertVisible: false,
+      basketAlertMessage: ''
+    };
+
+    let autoRefreshTimer = null;
+    let slClockTimer = null;
+    let toastTimer = null;
+
+    const tr = (key) => (TRANSLATIONS[state.lang] && TRANSLATIONS[state.lang][key]) || TRANSLATIONS.en[key];
+    const formatLKR = (amount) => `LKR ${Number(amount || 0).toLocaleString('en-LK')}`;
+    const getSelectedDistrict = () => SRI_LANKA_DISTRICTS.find((d) => d.id === state.districtId) || SRI_LANKA_DISTRICTS[0];
+
+    function showToast(msg) {
+      const banner = document.getElementById('toastBanner');
+      document.getElementById('toastMessage').textContent = msg;
+      banner.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        banner.classList.remove('show');
+      }, 2400);
+    }
+
+    function copyTextToClipboard(text) {
+      if (!text) return;
+      try {
+        const tempInput = document.createElement('input');
+        tempInput.value = text;
+        tempInput.setAttribute('readonly', '');
+        tempInput.style.position = 'fixed';
+        tempInput.style.left = '-9999px';
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+      } catch (_err) {
+        // Fallback if execCommand is unavailable
+      }
+      showToast(`Copied: ${text}`);
+    }
+
+    function updateSriLankaLiveClock() {
+      const now = new Date();
+      try {
+        const dateFormatter = new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Asia/Colombo',
+          weekday: 'short',
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+        const timeFormatter = new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Asia/Colombo',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
+        document.getElementById('slLiveDateText').textContent = dateFormatter.format(now);
+        document.getElementById('slLiveTimeText').textContent = `${timeFormatter.format(now)} (SLST)`;
+      } catch (_e) {
+        document.getElementById('slLiveDateText').textContent = now.toDateString();
+        document.getElementById('slLiveTimeText').textContent = now.toTimeString().slice(0, 8);
+      }
+    }
+
+    function getVegetableDisplayName(veg) {
+      if (state.lang === 'si') return `${veg.si} (${veg.en})`;
+      if (state.lang === 'ta') return `${veg.ta} (${veg.en})`;
+      return veg.en;
+    }
+
+    function getCategoryDisplayName(cat) {
+      if (state.lang === 'si') return cat.si;
+      if (state.lang === 'ta') return cat.ta;
+      return cat.en;
+    }
+
+    function getPackIndex(vegId) {
+      return state.selectedPackIndex[vegId] || 0;
+    }
+
+    function formatTimeHMS(dateObj) {
+      try {
+        return dateObj.toLocaleTimeString('en-LK', {
+          timeZone: 'Asia/Colombo',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+      } catch (_e) {
+        return dateObj.toTimeString().slice(0, 8);
+      }
+    }
+
+    function parseCartKey(cartKey) {
+      const parts = cartKey.split('__');
+      if (parts.length !== 2) return null;
+      const veg = VEGETABLES.find((v) => v.id === parts[0]);
+      const packIdx = Number(parts[1]);
+      if (!veg || !veg.options[packIdx]) return null;
+      return { veg, packIdx, option: veg.options[packIdx] };
+    }
+
+    function getBasketSubtotal() {
+      return Object.entries(state.cart).reduce((sum, [key, qty]) => {
+        const parsed = parseCartKey(key);
+        if (!parsed) return sum;
+        return sum + parsed.option.price * qty;
+      }, 0);
+    }
+
+    function getBasketCount() {
+      return Object.values(state.cart).reduce((sum, qty) => sum + qty, 0);
+    }
+
+    function pushSparklineValue(vegId, basePrice) {
+      if (!priceSeriesByVeg[vegId]) priceSeriesByVeg[vegId] = [];
+      priceSeriesByVeg[vegId].push(basePrice);
+      if (priceSeriesByVeg[vegId].length > 8) {
+        priceSeriesByVeg[vegId].shift();
+      }
+    }
+
+    // =========================================================================
+    // 5. ROLE AUTHENTICATION ("OTHERS" VS "ADMIN")
+    // =========================================================================
+    function applyRoleUiState() {
+      const isAdmin = state.role === 'admin' && state.isAdminAuthenticated;
+      const othersBtn = document.getElementById('roleOthersBtn');
+      const adminBtn = document.getElementById('roleAdminBtn');
+      const adminIcon = document.getElementById('roleAdminIcon');
+      const adminPill = document.getElementById('adminActivePill');
+      const adminControls = document.getElementById('adminControlsGroup');
+      const othersHint = document.getElementById('othersModeHint');
+
+      if (isAdmin) {
+        othersBtn.className = 'px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer text-stone-700 hover:text-stone-950';
+        adminBtn.className = 'px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer bg-forest-700 text-white shadow-2xs flex items-center gap-1';
+        adminIcon.textContent = '🔓';
+        adminPill.classList.remove('hidden');
+        adminPill.classList.add('inline-flex');
+        adminControls.classList.remove('hidden');
+        adminControls.classList.add('flex');
+        othersHint.classList.add('hidden');
+      } else {
+        state.role = 'others';
+        othersBtn.className = 'px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer bg-stone-800 text-white shadow-2xs';
+        adminBtn.className = 'px-2.5 py-1 rounded-lg text-xs font-extrabold transition cursor-pointer text-stone-700 hover:text-stone-950 flex items-center gap-1';
+        adminIcon.textContent = '🔒';
+        adminPill.classList.add('hidden');
+        adminPill.classList.remove('inline-flex');
+        adminControls.classList.add('hidden');
+        adminControls.classList.remove('flex');
+        othersHint.classList.remove('hidden');
+        closePriceManagerModal();
+        if (state.autoRefreshEnabled) {
+          const toggle = document.getElementById('autoRefreshToggle');
+          if (toggle) toggle.checked = false;
+          setAutoRefresh(false);
+        }
+      }
+    }
+
+    function openAdminLoginModal() {
+      const input = document.getElementById('adminPasswordInput');
+      const errEl = document.getElementById('adminLoginError');
+      input.type = 'password';
+      input.value = '';
+      errEl.classList.add('hidden');
+      document.getElementById('togglePasswordVisibilityBtn').textContent = '👁️';
+      document.getElementById('adminLoginBackdrop').classList.add('open');
+      setTimeout(() => {
+        input.focus();
+      }, 60);
+    }
+
+    function closeAdminLoginModal() {
+      const errEl = document.getElementById('adminLoginError');
+      errEl.classList.add('hidden');
+      document.getElementById('adminLoginBackdrop').classList.remove('open');
+      if (!state.isAdminAuthenticated) {
+        state.role = 'others';
+        applyRoleUiState();
+      }
+    }
+
+    function lockAdminSession() {
+      state.isAdminAuthenticated = false;
+      state.role = 'others';
+      applyRoleUiState();
+      showToast('Switched to Others view');
+    }
+
+    function switchToOthersView() {
+      state.role = 'others';
+      applyRoleUiState();
+    }
+
+    function handleAdminRequest() {
+      if (state.isAdminAuthenticated) {
+        state.role = 'admin';
+        applyRoleUiState();
+        return;
+      }
+      openAdminLoginModal();
+    }
+
+    // =========================================================================
+    // 6. CUSTOM INLINE SVG ILLUSTRATIONS FOR ALL 19 VEGETABLES
+    // =========================================================================
+    function getVegetableSvgPaths(vegId) {
+      switch (vegId) {
+        case 'carrot':
+          return `
+            <path d="M32 66 L82 26 C86 23 92 29 88 34 L46 76 C41 81 30 71 32 66 Z" fill="#f97316" stroke="#c2410c" stroke-width="2" />
+            <path d="M49 54 L56 61 M61 44 L68 51 M72 35 L78 41" stroke="#ffedd5" stroke-width="1.8" stroke-linecap="round" />
+            <path d="M85 28 L99 15 M87 30 L104 25 M83 26 L90 10" stroke="#15803d" stroke-width="3" stroke-linecap="round" />
+          `;
+        case 'beans':
+          return `
+            <path d="M22 58 C45 31 76 25 98 35 C78 46 50 54 22 58 Z" fill="#16a34a" stroke="#14532d" stroke-width="2" />
+            <circle cx="43" cy="48" r="4.2" fill="#bbf7d0" />
+            <circle cx="62" cy="41" r="4.2" fill="#bbf7d0" />
+            <circle cx="80" cy="36" r="4.2" fill="#bbf7d0" />
+          `;
+        case 'beetroot':
+          return `
+            <circle cx="58" cy="54" r="20" fill="#be185d" stroke="#831843" stroke-width="2.2" />
+            <path d="M58 74 L58 82" stroke="#9d174d" stroke-width="2.5" stroke-linecap="round" />
+            <path d="M58 34 C50 20 38 18 32 24 M58 34 C66 18 78 18 86 26" stroke="#15803d" stroke-width="3" stroke-linecap="round" fill="none" />
+          `;
+        case 'cabbage':
+          return `
+            <circle cx="60" cy="48" r="26" fill="#4ade80" stroke="#15803d" stroke-width="2.2" />
+            <path d="M36 44 C46 56 74 56 84 44" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" />
+            <path d="M42 32 C52 42 68 42 78 32" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" />
+            <path d="M44 62 C54 54 66 54 76 62" fill="none" stroke="#166534" stroke-width="2" stroke-linecap="round" />
+          `;
+        case 'tomato':
+          return `
+            <circle cx="60" cy="53" r="22" fill="#ef4444" stroke="#991b1b" stroke-width="2.2" />
+            <path d="M51 46 C49 54 51 62 55 66" stroke="#fecaca" stroke-width="2" stroke-linecap="round" fill="none" />
+            <path d="M60 31 L52 24 M60 31 L68 24 M60 31 L60 20" stroke="#15803d" stroke-width="2.6" stroke-linecap="round" />
+          `;
+        case 'brinjal':
+          return `
+            <path d="M32 62 C32 42 54 30 78 30 C88 30 92 38 86 48 C78 62 56 72 36 70 C32 69 32 65 32 62 Z" fill="#7e22ce" stroke="#4c1d95" stroke-width="2.2" />
+            <path d="M84 32 L97 23 M85 35 L99 34 M82 30 L91 18" stroke="#15803d" stroke-width="3" stroke-linecap="round" />
+          `;
+        case 'okra':
+          return `
+            <path d="M28 62 C48 52 72 40 94 28 L88 40 C68 50 48 60 28 62 Z" fill="#22c55e" stroke="#15803d" stroke-width="2" />
+            <line x1="48" y1="54" x2="46" y2="46" stroke="#14532d" stroke-width="1.5" />
+            <line x1="66" y1="45" x2="64" y2="37" stroke="#14532d" stroke-width="1.5" />
+          `;
+        case 'bitter-gourd':
+          return `
+            <path d="M28 54 C42 36 76 36 92 52 C76 68 42 68 28 54 Z" fill="#15803d" stroke="#14532d" stroke-width="2.2" />
+            <path d="M44 42 L44 64 M56 40 L56 66 M68 41 L68 65 M80 44 L80 62" stroke="#86efac" stroke-width="2" />
+          `;
+        case 'snake-gourd':
+          return `
+            <path d="M24 56 C44 30 76 68 96 36" stroke="#84cc16" stroke-width="11" stroke-linecap="round" fill="none" />
+            <path d="M24 56 C44 30 76 68 96 36" stroke="#ecfccb" stroke-width="2.4" stroke-dasharray="4 4" stroke-linecap="round" fill="none" />
+          `;
+        case 'ridge-gourd':
+          return `
+            <path d="M24 62 C48 52 72 40 96 28 L91 41 C70 50 48 60 24 62 Z" fill="#16a34a" stroke="#14532d" stroke-width="2" />
+            <path d="M38 56 L42 46 M54 49 L58 39 M70 42 L74 32 M84 36 L88 28" stroke="#bbf7d0" stroke-width="1.8" stroke-linecap="round" />
+          `;
+        case 'ash-plantain':
+          return `
+            <path d="M24 62 C44 36 74 28 98 34 C82 54 54 68 24 62 Z" fill="#65a30d" stroke="#3f6212" stroke-width="2.2" />
+            <path d="M32 58 C52 42 74 36 92 36" stroke="#bef264" stroke-width="1.8" fill="none" />
+          `;
+        case 'pumpkin':
+          return `
+            <ellipse cx="60" cy="52" rx="30" ry="22" fill="#f59e0b" stroke="#b45309" stroke-width="2.2" />
+            <ellipse cx="60" cy="52" rx="16" ry="22" fill="none" stroke="#b45309" stroke-width="1.8" />
+            <path d="M60 30 L60 22" stroke="#15803d" stroke-width="4" stroke-linecap="round" />
+          `;
+        case 'drumstick':
+          return `
+            <line x1="22" y1="66" x2="98" y2="26" stroke="#4ade80" stroke-width="7" stroke-linecap="round" />
+            <line x1="22" y1="66" x2="98" y2="26" stroke="#15803d" stroke-width="2" stroke-linecap="round" />
+            <circle cx="42" cy="55" r="3" fill="#15803d" />
+            <circle cx="62" cy="45" r="3" fill="#15803d" />
+            <circle cx="82" cy="35" r="3" fill="#15803d" />
+          `;
+        case 'green-chilli':
+          return `
+            <path d="M24 62 C48 57 72 44 92 27 C82 25 68 35 52 46 C38 55 29 59 24 62 Z" fill="#16a34a" stroke="#14532d" stroke-width="2" />
+            <path d="M92 27 L99 21" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" />
+          `;
+        case 'red-onion':
+          return `
+            <path d="M60 26 C44 38 38 50 40 62 C42 70 50 74 60 74 C70 74 78 70 80 62 C82 50 76 38 60 26 Z" fill="#db2777" stroke="#831843" stroke-width="2.2" />
+            <path d="M60 26 L60 20" stroke="#831843" stroke-width="2.2" stroke-linecap="round" />
+            <path d="M60 28 C53 40 50 54 52 72 M60 28 C67 40 70 54 68 72" stroke="#fbcfe8" stroke-width="1.5" fill="none" />
+          `;
+        case 'potato':
+          return `
+            <ellipse cx="60" cy="54" rx="26" ry="18" transform="rotate(-12 60 54)" fill="#d97706" stroke="#78350f" stroke-width="2.2" />
+            <circle cx="48" cy="50" r="1.8" fill="#78350f" />
+            <circle cx="64" cy="46" r="1.8" fill="#78350f" />
+            <circle cx="70" cy="59" r="1.8" fill="#78350f" />
+          `;
+        case 'gotukola':
+          return `
+            <path d="M48 76 C44 58 34 44 24 36 M48 66 C54 52 64 42 74 34 M48 60 L48 26" stroke="#15803d" stroke-width="2.4" stroke-linecap="round" fill="none" />
+            <circle cx="24" cy="35" r="10.5" fill="#4ade80" stroke="#15803d" stroke-width="1.8" />
+            <circle cx="74" cy="33" r="10.5" fill="#22c55e" stroke="#15803d" stroke-width="1.8" />
+            <circle cx="48" cy="24" r="11" fill="#16a34a" stroke="#14532d" stroke-width="1.8" />
+          `;
+        case 'mukunuwenna':
+          return `
+            <path d="M30 62 C52 52 72 42 94 32" stroke="#15803d" stroke-width="2.8" stroke-linecap="round" fill="none" />
+            <ellipse cx="42" cy="50" rx="10" ry="5" transform="rotate(-24 42 50)" fill="#4ade80" stroke="#15803d" stroke-width="1.6" />
+            <ellipse cx="62" cy="41" rx="10" ry="5" transform="rotate(-24 62 41)" fill="#22c55e" stroke="#15803d" stroke-width="1.6" />
+            <ellipse cx="82" cy="33" rx="10" ry="5" transform="rotate(-24 82 33)" fill="#16a34a" stroke="#14532d" stroke-width="1.6" />
+          `;
+        case 'kankun':
+        default:
+          return `
+            <path d="M26 64 C50 54 72 42 94 28" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" fill="none" />
+            <path d="M40 56 L28 44 L46 48 Z" fill="#4ade80" stroke="#15803d" stroke-width="1.6" />
+            <path d="M62 45 L50 32 L68 37 Z" fill="#22c55e" stroke="#15803d" stroke-width="1.6" />
+            <path d="M82 34 L72 22 L88 26 Z" fill="#16a34a" stroke="#14532d" stroke-width="1.6" />
+          `;
+      }
+    }
+
+    function renderVegetableCardSvg(veg) {
+      return `
+        <div class="relative h-36 rounded-2xl bg-gradient-to-br from-earth-50 via-forest-50/75 to-amber-50/60 border border-earth-200/90 flex items-center justify-center overflow-hidden">
+          <span class="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/95 text-stone-700 border border-earth-200">
+            ${veg.origin}
+          </span>
+          <span class="absolute bottom-2.5 right-2.5 text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-forest-700 text-white tracking-wide">
+            ${tr('freeDeliveryBadge')}
+          </span>
+          <svg viewBox="0 0 120 90" class="w-32 h-24" role="img" aria-label="${veg.en}">
+            <ellipse cx="60" cy="78" rx="34" ry="5.5" fill="#15803d" opacity="0.14" />
+            ${getVegetableSvgPaths(veg.id)}
+          </svg>
+        </div>
+      `;
+    }
+
+    function renderSparklineSvg(vegId) {
+      const series = priceSeriesByVeg[vegId] || [100];
+      const minVal = Math.min(...series);
+      const maxVal = Math.max(...series);
+      const span = Math.max(10, maxVal - minVal);
+
+      const coords = series
+        .map((val, idx) => {
+          const x = series.length === 1 ? 45 : (idx / (series.length - 1)) * 82 + 4;
+          const y = 24 - ((val - minVal) / span) * 18;
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        })
+        .join(' ');
+
+      const lastVal = series[series.length - 1];
+      const prevVal = series.length > 1 ? series[series.length - 2] : lastVal;
+      const strokeColor = lastVal > prevVal ? '#e11d48' : lastVal < prevVal ? '#059669' : '#047857';
+
+      return `
+        <svg viewBox="0 0 90 30" class="w-20 h-7 bg-earth-50 rounded-lg border border-earth-200 px-1 shrink-0" aria-label="Price trend sparkline">
+          <polyline fill="none" stroke="${strokeColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" points="${coords}" />
+        </svg>
+      `;
+    }
+
+    // =========================================================================
+    // 7. LIVE MARKET PRICE ENGINE & BASKET RECALCULATION
+    // =========================================================================
+    function syncBasketAfterPriceChange(reasonLabel) {
+      if (getBasketCount() === 0) return;
+
+      const updatedLines = [];
+      Object.entries(state.cart).forEach(([cartKey, qty]) => {
+        const parsed = parseCartKey(cartKey);
+        if (!parsed) return;
+        const deltaInfo = state.priceDeltas[parsed.veg.id];
+        if (deltaInfo && deltaInfo.delta !== 0) {
+          updatedLines.push(
+            `${parsed.veg.en} (${parsed.option.label} × ${qty}) → ${formatLKR(parsed.option.price * qty)}`
+          );
+        }
+      });
+
+      if (updatedLines.length > 0) {
+        const newSubtotal = getBasketSubtotal();
+        state.basketAlertVisible = true;
+        state.basketAlertMessage = `${reasonLabel} • New total ${formatLKR(newSubtotal)}: ${updatedLines.slice(0, 3).join(' • ')}`;
+      }
+    }
+
+    function simulateMarketFeed() {
+      let shiftedCount = 0;
+
+      VEGETABLES.forEach((veg) => {
+        if (Math.random() < 0.75) {
+          const pctSwing = (Math.random() * 0.18) - 0.08;
+          const oldBase = veg.options[0].price;
+          const newBase = Math.max(50, Math.round((oldBase * (1 + pctSwing)) / 10) * 10);
+          const delta = newBase - oldBase;
+          const pct = oldBase > 0 ? Number(((delta / oldBase) * 100).toFixed(1)) : 0;
+
+          if (delta !== 0) {
+            const scale = newBase / oldBase;
+            veg.options = veg.options.map((opt, idx) => ({
+              ...opt,
+              price: idx === 0 ? newBase : Math.max(70, Math.round((opt.price * scale) / 10) * 10)
+            }));
+            state.priceDeltas[veg.id] = { delta, pct, updatedAt: Date.now() };
+            pushSparklineValue(veg.id, newBase);
+            shiftedCount += 1;
+          } else {
+            state.priceDeltas[veg.id] = { delta: 0, pct: 0, updatedAt: Date.now() };
+            pushSparklineValue(veg.id, newBase);
+          }
+        } else {
+          pushSparklineValue(veg.id, veg.options[0].price);
+        }
+      });
+
+      state.lastUpdated = new Date();
+      state.lastFeedSummary = `${shiftedCount} rates shifted`;
+      syncBasketAfterPriceChange('Live Market Feed');
+
+      const summaryBadge = document.getElementById('lastFeedSummaryBadge');
+      summaryBadge.textContent = state.lastFeedSummary;
+      summaryBadge.classList.remove('hidden');
+
+      renderStore(true);
+    }
+
+    function setSingleVegetablePrice(vegId, packIdx, rawVal) {
+      if (!state.isAdminAuthenticated) return;
+      const veg = VEGETABLES.find((v) => v.id === vegId);
+      if (!veg || !veg.options[packIdx]) return;
+      const cleanPrice = Math.max(50, Math.round(Number(rawVal) || 0));
+      const oldPrice = veg.options[packIdx].price;
+      const delta = cleanPrice - oldPrice;
+      if (delta === 0) return;
+
+      const pct = oldPrice > 0 ? Number(((delta / oldPrice) * 100).toFixed(1)) : 0;
+      veg.options[packIdx].price = cleanPrice;
+      state.priceDeltas[veg.id] = { delta, pct, updatedAt: Date.now() };
+
+      if (packIdx === 0) {
+        pushSparklineValue(veg.id, cleanPrice);
+      }
+
+      state.lastUpdated = new Date();
+      syncBasketAfterPriceChange('Admin Price Update');
+      renderStore(true);
+    }
+
+    function applyBulkPercentageUpdate(categoryScope, percentInput) {
+      if (!state.isAdminAuthenticated) return;
+      const pct = Number(percentInput);
+      if (!Number.isFinite(pct) || pct === 0) return;
+      const factor = 1 + pct / 100;
+
+      VEGETABLES.forEach((veg) => {
+        if (categoryScope !== 'all' && veg.category !== categoryScope) return;
+        const oldBase = veg.options[0].price;
+        veg.options = veg.options.map((opt) => ({
+          ...opt,
+          price: Math.max(50, Math.round((opt.price * factor) / 10) * 10)
+        }));
+        const delta = veg.options[0].price - oldBase;
+        const changePct = oldBase > 0 ? Number(((delta / oldBase) * 100).toFixed(1)) : 0;
+        state.priceDeltas[veg.id] = { delta, pct: changePct, updatedAt: Date.now() };
+        pushSparklineValue(veg.id, veg.options[0].price);
+      });
+
+      state.lastUpdated = new Date();
+      syncBasketAfterPriceChange(`Bulk ${pct > 0 ? '+' : ''}${pct}% (${categoryScope})`);
+      renderStore(true);
+      renderPriceManagerItems();
+    }
+
+    function resetBaselinePrices() {
+      if (!state.isAdminAuthenticated) return;
+      VEGETABLES.forEach((veg) => {
+        const baseline = BASELINE_PRICES[veg.id];
+        if (!baseline) return;
+        const delta = baseline[0] - veg.options[0].price;
+        const pct = veg.options[0].price > 0 ? Number(((delta / veg.options[0].price) * 100).toFixed(1)) : 0;
+        veg.options = veg.options.map((opt, idx) => ({
+          ...opt,
+          price: baseline[idx] !== undefined ? baseline[idx] : opt.price
+        }));
+        state.priceDeltas[veg.id] = { delta, pct, updatedAt: Date.now() };
+        pushSparklineValue(veg.id, veg.options[0].price);
+      });
+
+      state.lastUpdated = new Date();
+      syncBasketAfterPriceChange('Baseline Reset');
+      renderStore(true);
+      renderPriceManagerItems();
+    }
+
+    function setAutoRefresh(enabled) {
+      state.autoRefreshEnabled = Boolean(enabled) && state.isAdminAuthenticated;
+      const knob = document.getElementById('autoRefreshKnob');
+      const countdownEl = document.getElementById('autoRefreshCountdown');
+
+      if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+      }
+
+      if (state.autoRefreshEnabled) {
+        state.autoRefreshSecondsLeft = 15;
+        knob.style.transform = 'translateX(14px)';
+        countdownEl.classList.remove('hidden');
+        countdownEl.textContent = `Next update: ${state.autoRefreshSecondsLeft}s`;
+
+        autoRefreshTimer = setInterval(() => {
+          state.autoRefreshSecondsLeft -= 1;
+          if (state.autoRefreshSecondsLeft <= 0) {
+            state.autoRefreshSecondsLeft = 15;
+            simulateMarketFeed();
+          }
+          countdownEl.textContent = `Next update: ${state.autoRefreshSecondsLeft}s`;
+        }, 1000);
+      } else {
+        knob.style.transform = 'translateX(0px)';
+        countdownEl.classList.add('hidden');
+      }
+    }
+
+    // =========================================================================
+    // 8. FILTERING, SORTING & UI RENDERING
+    // =========================================================================
+    function getFilteredSortedCatalog() {
+      const q = state.search.trim().toLowerCase();
+
+      const matches = VEGETABLES.filter((veg) => {
+        const catOk = state.category === 'all' || veg.category === state.category;
+        const searchOk =
+          !q ||
+          veg.en.toLowerCase().includes(q) ||
+          veg.si.toLowerCase().includes(q) ||
+          veg.ta.toLowerCase().includes(q) ||
+          veg.origin.toLowerCase().includes(q);
+        return catOk && searchOk;
+      });
+
+      const sorted = [...matches];
+      if (state.sort === 'price-asc') {
+        sorted.sort((a, b) => a.options[getPackIndex(a.id)].price - b.options[getPackIndex(b.id)].price);
+      } else if (state.sort === 'price-desc') {
+        sorted.sort((a, b) => b.options[getPackIndex(b.id)].price - a.options[getPackIndex(a.id)].price);
+      } else if (state.sort === 'name-asc') {
+        sorted.sort((a, b) => a.en.localeCompare(b.en));
+      }
+      return sorted;
+    }
+
+    function renderDistrictDropdowns() {
+      const html = SRI_LANKA_DISTRICTS.map(
+        (d) => `<option value="${d.id}" ${d.id === state.districtId ? 'selected' : ''}>${d.name} (${tr('freeDeliveryBadge')})</option>`
+      ).join('');
+
+      document.getElementById('headerDistrictSelect').innerHTML = html;
+      document.getElementById('checkoutDistrictSelect').innerHTML = html;
+
+      const activeDistrict = getSelectedDistrict();
+      document.getElementById('heroActiveDistrictName').textContent = activeDistrict.name;
+      document.getElementById('heroActiveDistrictEta').textContent = activeDistrict.eta;
+      document.getElementById('drawerDistrictSub').textContent = `${activeDistrict.name} • ${tr('freeDeliveryBadge')}`;
+    }
+
+    function renderCategoryFilterTabs() {
+      const container = document.getElementById('categoryTabs');
+      container.innerHTML = CATEGORIES.map((cat) => {
+        const active = cat.id === state.category;
+        return `
+          <button
+            type="button"
+            data-cat="${cat.id}"
+            class="cat-tab inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition cursor-pointer ${
+              active
+                ? 'bg-forest-800 text-white border-forest-800 shadow-2xs'
+                : 'bg-earth-50 text-stone-700 border-earth-200 hover:border-forest-600 hover:bg-white'
+            }"
+          >
+            <span>${cat.icon}</span>
+            <span>${getCategoryDisplayName(cat)}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderCatalogGrid(animateChanges = false) {
+      const grid = document.getElementById('vegetableGrid');
+      const emptyBox = document.getElementById('emptyState');
+      const items = getFilteredSortedCatalog();
+
+      document.getElementById('resultsCount').textContent = items.length;
+      document.getElementById('clearSearchBtn').classList.toggle('hidden', !state.search.trim());
+
+      if (items.length === 0) {
+        grid.innerHTML = '';
+        emptyBox.classList.remove('hidden');
+        return;
+      }
+
+      emptyBox.classList.add('hidden');
+      grid.innerHTML = items
+        .map((veg) => {
+          const packIdx = getPackIndex(veg.id);
+          const activeOption = veg.options[packIdx] || veg.options[0];
+          const cartKey = `${veg.id}__${packIdx}`;
+          const qtyInBasket = state.cart[cartKey] || 0;
+
+          const deltaInfo = state.priceDeltas[veg.id];
+          const recentChange = deltaInfo && (Date.now() - deltaInfo.updatedAt < 60000);
+
+          let changeIndicator = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 num-lkr">0.0%</span>`;
+          if (recentChange && deltaInfo.delta > 0) {
+            changeIndicator = `<span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200 num-lkr">↑ +${deltaInfo.pct}%</span>`;
+          } else if (recentChange && deltaInfo.delta < 0) {
+            changeIndicator = `<span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 num-lkr">↓ ${deltaInfo.pct}%</span>`;
+          }
+
+          const packSelectorHtml = veg.options
+            .map((opt, idx) => {
+              const selected = idx === packIdx;
+              return `
+                <button
+                  type="button"
+                  data-veg-id="${veg.id}"
+                  data-pack-idx="${idx}"
+                  class="pack-select-btn py-1 px-2 rounded-lg text-[11px] font-bold border transition cursor-pointer num-lkr ${
+                    selected
+                      ? 'bg-forest-800 text-white border-forest-800'
+                      : 'bg-earth-50 text-stone-700 border-earth-200 hover:border-forest-600'
+                  }"
+                >
+                  ${opt.label}
+                </button>
+              `;
+            })
+            .join('');
+
+          return `
+            <article class="bg-white rounded-2xl border border-earth-200 hover:border-forest-500 shadow-2xs hover:shadow-md transition p-4 flex flex-col justify-between">
+              <div>
+                ${renderVegetableCardSvg(veg)}
+
+                <div class="mt-3 flex items-center justify-between gap-2">
+                  ${changeIndicator}
+                  ${renderSparklineSvg(veg.id)}
+                </div>
+
+                <h3 class="mt-2 font-extrabold text-stone-950 text-base leading-snug">${getVegetableDisplayName(veg)}</h3>
+
+                <!-- Pack / Weight Selector -->
+                <div class="mt-3 grid grid-cols-3 gap-1.5">
+                  ${packSelectorHtml}
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-earth-200/80 flex items-center justify-between gap-2">
+                <div class="${animateChanges && recentChange && deltaInfo.delta !== 0 ? 'live-price-flash px-1.5 py-0.5' : ''}">
+                  <div class="text-base font-black text-forest-950 num-lkr">${formatLKR(activeOption.price)}</div>
+                  <div class="text-[10px] font-bold text-forest-700">${tr('freeDeliveryBadge')}</div>
+                </div>
+
+                ${
+                  qtyInBasket === 0
+                    ? `<button type="button" data-cart-key="${cartKey}" class="add-item-btn inline-flex items-center gap-1.5 bg-forest-700 hover:bg-forest-800 active:scale-95 text-white text-xs font-extrabold px-3.5 py-2.5 rounded-xl transition cursor-pointer">
+                        <span>+</span>
+                        <span>${tr('addToBasket')}</span>
+                       </button>`
+                    : `<div class="inline-flex items-center gap-1 bg-earth-100 border border-earth-200 rounded-xl p-1">
+                        <button type="button" data-cart-key="${cartKey}" aria-label="Decrease quantity" class="qty-dec w-7 h-7 rounded-lg bg-white hover:bg-stone-100 text-stone-800 font-bold text-sm flex items-center justify-center cursor-pointer">−</button>
+                        <span class="px-1.5 text-xs font-black text-stone-950 num-lkr">${qtyInBasket}</span>
+                        <button type="button" data-cart-key="${cartKey}" aria-label="Increase quantity" class="qty-inc w-7 h-7 rounded-lg bg-forest-700 hover:bg-forest-800 text-white font-bold text-sm flex items-center justify-center cursor-pointer">+</button>
+                       </div>`
+                }
+              </div>
+            </article>
+          `;
+        })
+        .join('');
+    }
+
+    function renderBasketDrawer() {
+      const itemsContainer = document.getElementById('cartItemsList');
+      const subtotal = getBasketSubtotal();
+      const count = getBasketCount();
+
+      document.getElementById('cartBadge').textContent = count;
+      document.getElementById('drawerSubtotalVal').textContent = formatLKR(subtotal);
+      document.getElementById('drawerDeliveryVal').textContent = tr('drawerDeliveryVal');
+      document.getElementById('drawerTotalVal').textContent = formatLKR(subtotal);
+      document.getElementById('openCheckoutBtn').disabled = count === 0;
+
+      const showAlert = state.basketAlertVisible && count > 0 && state.basketAlertMessage;
+      document.getElementById('basketPriceAlert').classList.toggle('hidden', !showAlert);
+      document.getElementById('headerPriceAlertDot').classList.toggle('hidden', !showAlert);
+      if (showAlert) {
+        document.getElementById('basketPriceAlertDetail').textContent = state.basketAlertMessage;
+      }
+
+      renderDistrictDropdowns();
+
+      if (count === 0) {
+        itemsContainer.innerHTML = `
+          <div class="text-center py-12 px-4">
+            <div class="w-12 h-12 rounded-2xl bg-earth-100 text-stone-400 flex items-center justify-center mx-auto mb-3 text-xl">🧺</div>
+            <h3 class="font-extrabold text-stone-900 text-sm">${tr('emptyCartTitle')}</h3>
+            <p class="text-xs text-stone-500 mt-1">${tr('emptyCartDesc')}</p>
+          </div>
+        `;
+        return;
+      }
+
+      itemsContainer.innerHTML = Object.entries(state.cart)
+        .map(([cartKey, qty]) => {
+          const parsed = parseCartKey(cartKey);
+          if (!parsed) return '';
+          const { veg, option } = parsed;
+          const lineTotal = option.price * qty;
+
+          return `
+            <div class="flex items-center gap-3 p-3 rounded-2xl bg-earth-50/75 border border-earth-200">
+              <div class="w-14 h-12 rounded-xl bg-white border border-earth-200 flex items-center justify-center shrink-0">
+                <svg viewBox="0 0 120 90" class="w-12 h-9" aria-hidden="true">
+                  ${getVegetableSvgPaths(veg.id)}
+                </svg>
+              </div>
+
+              <div class="min-w-0 flex-1">
+                <h4 class="text-xs sm:text-sm font-extrabold text-stone-950 truncate">${getVegetableDisplayName(veg)}</h4>
+                <p class="text-[11px] text-stone-600 num-lkr">
+                  <span class="font-bold">${option.label}</span> • ${formatLKR(option.price)} each • <strong class="text-forest-800">${formatLKR(lineTotal)}</strong>
+                </p>
+              </div>
+
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" data-cart-key="${cartKey}" aria-label="Decrease quantity" class="qty-dec w-7 h-7 rounded-lg bg-white border border-earth-200 hover:bg-stone-100 text-stone-800 font-bold text-xs flex items-center justify-center cursor-pointer">−</button>
+                <span class="w-5 text-center text-xs font-black num-lkr">${qty}</span>
+                <button type="button" data-cart-key="${cartKey}" aria-label="Increase quantity" class="qty-inc w-7 h-7 rounded-lg bg-forest-700 hover:bg-forest-800 text-white font-bold text-xs flex items-center justify-center cursor-pointer">+</button>
+                <button type="button" data-cart-key="${cartKey}" aria-label="Remove item" class="remove-item-btn ml-0.5 text-stone-400 hover:text-rose-600 text-xs font-bold px-1 cursor-pointer">✕</button>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+    }
+
+    function renderPriceManagerItems() {
+      const listEl = document.getElementById('priceManagerList');
+      listEl.innerHTML = VEGETABLES.map((veg) => {
+        const inputs = veg.options
+          .map(
+            (opt, idx) => `
+              <label class="text-[11px] font-bold text-stone-700 flex flex-col">
+                <span>${opt.label}</span>
+                <input
+                  type="number"
+                  step="10"
+                  min="50"
+                  data-pm-veg="${veg.id}"
+                  data-pm-pack="${idx}"
+                  value="${opt.price}"
+                  class="pm-price-input mt-0.5 w-20 px-2 py-1 rounded-lg border border-earth-200 bg-white text-xs font-extrabold text-stone-950 focus:border-forest-600 focus:outline-none num-lkr"
+                />
+              </label>
+            `
+          )
+          .join('');
+
+        return `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-2xl border border-earth-200 bg-earth-50/60">
+            <div class="min-w-0">
+              <div class="font-extrabold text-xs sm:text-sm text-stone-950">${getVegetableDisplayName(veg)}</div>
+              <div class="text-[11px] text-stone-500">${veg.origin} • ${veg.category}</div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 shrink-0">
+              ${inputs}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function applyTranslatedUiStrings() {
+      document.documentElement.lang = state.lang === 'si' ? 'si' : state.lang === 'ta' ? 'ta' : 'en';
+
+      const ids = [
+        'topNegotiableDeliveryText',
+        'contactLabelPrefix',
+        'headerFreeBadge',
+        'brandSubtitle',
+        'roleOthersLabel',
+        'roleAdminLabel',
+        'adminActiveBadgeText',
+        'lockAdminBtnText',
+        'othersModeNoticeText',
+        'districtLabel',
+        'basketBtnText',
+        'marketStatusText',
+        'lastUpdatedPrefix',
+        'autoRefreshLabel',
+        'simulateFeedBtnText',
+        'priceManagerBtnText',
+        'heroBadgeText',
+        'heroTitle',
+        'heroSubtitle',
+        'heroActiveDistrictLabel',
+        'heroDeliveryFeeCaption',
+        'heroDeliveryFeeValue',
+        'sortLabel',
+        'catalogEyebrow',
+        'catalogHeading',
+        'showingPrefix',
+        'itemsSuffix',
+        'catalogFreeBadge',
+        'emptyStateTitle',
+        'emptyStateDesc',
+        'resetFiltersBtnText',
+        'drawerTitle',
+        'freeUnlockedTitle',
+        'freeUnlockedSub',
+        'basketPriceAlertTitle',
+        'deliveryNoteLabel',
+        'drawerSubtotalLabel',
+        'drawerDeliveryLabel',
+        'drawerDeliveryVal',
+        'drawerTotalLabel',
+        'proceedCheckoutBtnText',
+        'checkoutTitle',
+        'checkoutSubtitle',
+        'checkoutSummaryHeading',
+        'checkoutSubtotalLabel',
+        'checkoutDeliveryLabel',
+        'checkoutDeliveryVal',
+        'checkoutTotalLabel',
+        'labelCustName',
+        'labelCustPhone',
+        'labelCheckoutDistrict',
+        'labelDeliverySlot',
+        'labelCustAddress',
+        'labelPaymentMethod',
+        'payCodTitle',
+        'payCodSub',
+        'payQrTitle',
+        'payQrSub',
+        'confirmOrderBtnText',
+        'confirmedTitle',
+        'confirmedDesc',
+        'continueShoppingBtnText',
+        'footerText',
+        'adminLoginTitle',
+        'adminPasswordLabel',
+        'cancelAdminBtnText',
+        'unlockAdminBtnText'
+      ];
+
+      ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = tr(id);
+      });
+
+      document.getElementById('searchInput').placeholder = tr('searchPlaceholder');
+      document.getElementById('deliveryNoteInput').placeholder = tr('deliveryNotePlaceholder');
+
+      document.querySelectorAll('.lang-btn').forEach((btn) => {
+        const selected = btn.dataset.lang === state.lang;
+        btn.className = `lang-btn px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+          selected ? 'bg-forest-700 text-white shadow-2xs' : 'text-stone-700 hover:text-stone-900'
+        }`;
+      });
+    }
+
+    function renderStore(animateChanges = false) {
+      document.getElementById('lastUpdatedClock').textContent = formatTimeHMS(state.lastUpdated);
+      applyRoleUiState();
+      renderDistrictDropdowns();
+      renderCategoryFilterTabs();
+      renderCatalogGrid(animateChanges);
+      renderBasketDrawer();
+    }
+
+    // =========================================================================
+    // 9. DRAWER & MODAL OPEN/CLOSE HANDLERS
+    // =========================================================================
+    function openBasketDrawer() {
+      document.getElementById('cartDrawerBackdrop').classList.add('open');
+    }
+    function closeBasketDrawer() {
+      document.getElementById('cartDrawerBackdrop').classList.remove('open');
+    }
+
+    function openCheckoutModal() {
+      const subtotal = getBasketSubtotal();
+      const count = getBasketCount();
+      if (count === 0) return;
+
+      document.getElementById('checkoutItemCountBadge').textContent = `${count} items`;
+      document.getElementById('checkoutSubtotalVal').textContent = formatLKR(subtotal);
+      document.getElementById('checkoutDeliveryVal').textContent = tr('checkoutDeliveryVal');
+      document.getElementById('checkoutTotalVal').textContent = formatLKR(subtotal);
+      document.getElementById('checkoutDistrictSelect').value = state.districtId;
+
+      const notePreview = document.getElementById('checkoutNotePreview');
+      if (state.deliveryNote.trim()) {
+        notePreview.textContent = `Note: "${state.deliveryNote.trim()}"`;
+        notePreview.classList.remove('hidden');
+      } else {
+        notePreview.classList.add('hidden');
+      }
+
+      document.getElementById('checkoutItemsPreview').innerHTML = Object.entries(state.cart)
+        .map(([cartKey, qty]) => {
+          const parsed = parseCartKey(cartKey);
+          if (!parsed) return '';
+          return `
+            <div class="py-1.5 flex items-center justify-between gap-2 num-lkr">
+              <span><strong>${getVegetableDisplayName(parsed.veg)}</strong> (${parsed.option.label}) × ${qty}</span>
+              <span class="font-bold text-stone-950">${formatLKR(parsed.option.price * qty)}</span>
+            </div>
+          `;
+        })
+        .join('');
+
+      document.getElementById('checkoutErrorMsg').classList.add('hidden');
+      closeBasketDrawer();
+      document.getElementById('checkoutModalBackdrop').classList.add('open');
+    }
+
+    function closeCheckoutModal() {
+      document.getElementById('checkoutModalBackdrop').classList.remove('open');
+    }
+
+    function openPriceManagerModal() {
+      if (!state.isAdminAuthenticated) {
+        openAdminLoginModal();
+        return;
+      }
+      renderPriceManagerItems();
+      document.getElementById('priceManagerBackdrop').classList.add('open');
+    }
+    function closePriceManagerModal() {
+      document.getElementById('priceManagerBackdrop').classList.remove('open');
+    }
+
+    // =========================================================================
+    // 10. EVENT LISTENERS
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      updateSriLankaLiveClock();
+      slClockTimer = setInterval(updateSriLankaLiveClock, 1000);
+
+      applyTranslatedUiStrings();
+      renderStore(false);
+
+      // Click & copy contact details
+      document.querySelectorAll('.copy-contact-btn').forEach((el) => {
+        el.addEventListener('click', () => {
+          copyTextToClipboard(el.dataset.copy);
+        });
+      });
+
+      // Role toggle: Others vs Admin
+      document.getElementById('roleOthersBtn').addEventListener('click', () => {
+        switchToOthersView();
+      });
+      document.getElementById('roleAdminBtn').addEventListener('click', () => {
+        handleAdminRequest();
+      });
+      document.getElementById('lockAdminBtn').addEventListener('click', () => {
+        lockAdminSession();
+      });
+
+      // Admin password modal controls
+      document.getElementById('closeAdminLoginBtn').addEventListener('click', closeAdminLoginModal);
+      document.getElementById('cancelAdminLoginBtn').addEventListener('click', closeAdminLoginModal);
+      document.getElementById('adminLoginBackdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'adminLoginBackdrop') closeAdminLoginModal();
+      });
+
+      document.getElementById('togglePasswordVisibilityBtn').addEventListener('click', () => {
+        const input = document.getElementById('adminPasswordInput');
+        const btn = document.getElementById('togglePasswordVisibilityBtn');
+        if (input.type === 'password') {
+          input.type = 'text';
+          btn.textContent = '🙈';
+        } else {
+          input.type = 'password';
+          btn.textContent = '👁️';
+        }
+      });
+
+      document.getElementById('adminPasswordInput').addEventListener('input', () => {
+        document.getElementById('adminLoginError').classList.add('hidden');
+      });
+
+      document.getElementById('adminLoginForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('adminPasswordInput');
+        const errEl = document.getElementById('adminLoginError');
+        const entered = String(input.value).trim();
+
+        if (entered === ADMIN_SECRET_KEY) {
+          state.isAdminAuthenticated = true;
+          state.role = 'admin';
+          input.value = '';
+          errEl.classList.add('hidden');
+          document.getElementById('adminLoginBackdrop').classList.remove('open');
+          applyRoleUiState();
+          showToast('Admin mode unlocked');
+        } else {
+          errEl.textContent = 'Incorrect password. Please try again.';
+          errEl.classList.remove('hidden');
+          input.focus();
+          input.select();
+        }
+      });
+
+      // Language toggle
+      document.querySelectorAll('.lang-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.lang = btn.dataset.lang;
+          applyTranslatedUiStrings();
+          renderStore(false);
+        });
+      });
+
+      // District sync
+      document.getElementById('headerDistrictSelect').addEventListener('change', (e) => {
+        state.districtId = e.target.value;
+        renderDistrictDropdowns();
+      });
+      document.getElementById('checkoutDistrictSelect').addEventListener('change', (e) => {
+        state.districtId = e.target.value;
+        renderDistrictDropdowns();
+      });
+
+      // Live market feed simulation & 15s auto-refresh (Admin guarded)
+      document.getElementById('simulateFeedBtn').addEventListener('click', () => {
+        if (!state.isAdminAuthenticated) return;
+        simulateMarketFeed();
+      });
+      document.getElementById('autoRefreshToggle').addEventListener('change', (e) => {
+        if (!state.isAdminAuthenticated) {
+          e.target.checked = false;
+          return;
+        }
+        setAutoRefresh(e.target.checked);
+      });
+
+      // Live Price Manager modal events (Admin guarded)
+      document.getElementById('openPriceManagerBtn').addEventListener('click', openPriceManagerModal);
+      document.getElementById('closePriceManagerBtn').addEventListener('click', closePriceManagerModal);
+      document.getElementById('donePriceManagerBtn').addEventListener('click', closePriceManagerModal);
+      document.getElementById('priceManagerBackdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'priceManagerBackdrop') closePriceManagerModal();
+      });
+
+      document.getElementById('priceManagerList').addEventListener('change', (e) => {
+        const input = e.target.closest('.pm-price-input');
+        if (!input) return;
+        setSingleVegetablePrice(input.dataset.pmVeg, Number(input.dataset.pmPack), input.value);
+      });
+
+      document.getElementById('applyBulkPercentBtn').addEventListener('click', () => {
+        const scope = document.getElementById('bulkCategorySelect').value;
+        const pct = document.getElementById('bulkPercentInput').value;
+        applyBulkPercentageUpdate(scope, pct);
+      });
+
+      document.getElementById('resetBaselinePricesBtn').addEventListener('click', resetBaselinePrices);
+
+      // Basket alert dismiss
+      document.getElementById('dismissBasketAlertBtn').addEventListener('click', () => {
+        state.basketAlertVisible = false;
+        renderBasketDrawer();
+      });
+
+      // Category tabs
+      document.getElementById('categoryTabs').addEventListener('click', (e) => {
+        const tab = e.target.closest('.cat-tab');
+        if (!tab) return;
+        state.category = tab.dataset.cat;
+        renderCategoryFilterTabs();
+        renderCatalogGrid(false);
+      });
+
+      // Search & Sort
+      document.getElementById('searchInput').addEventListener('input', (e) => {
+        state.search = e.target.value;
+        renderCatalogGrid(false);
+      });
+
+      document.getElementById('clearSearchBtn').addEventListener('click', () => {
+        state.search = '';
+        document.getElementById('searchInput').value = '';
+        renderCatalogGrid(false);
+      });
+
+      document.getElementById('sortSelect').addEventListener('change', (e) => {
+        state.sort = e.target.value;
+        renderCatalogGrid(false);
+      });
+
+      document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+        state.category = 'all';
+        state.search = '';
+        state.sort = 'featured';
+        document.getElementById('searchInput').value = '';
+        document.getElementById('sortSelect').value = 'featured';
+        renderStore(false);
+      });
+
+      // Catalog pack selectors & basket actions
+      document.getElementById('vegetableGrid').addEventListener('click', (e) => {
+        const packBtn = e.target.closest('.pack-select-btn');
+        if (packBtn) {
+          state.selectedPackIndex[packBtn.dataset.vegId] = Number(packBtn.dataset.packIdx);
+          renderCatalogGrid(false);
+          return;
+        }
+
+        const addBtn = e.target.closest('.add-item-btn');
+        if (addBtn) {
+          const key = addBtn.dataset.cartKey;
+          state.cart[key] = (state.cart[key] || 0) + 1;
+          renderCatalogGrid(false);
+          renderBasketDrawer();
+          return;
+        }
+
+        const incBtn = e.target.closest('.qty-inc');
+        if (incBtn) {
+          const key = incBtn.dataset.cartKey;
+          state.cart[key] = (state.cart[key] || 0) + 1;
+          renderCatalogGrid(false);
+          renderBasketDrawer();
+          return;
+        }
+
+        const decBtn = e.target.closest('.qty-dec');
+        if (decBtn) {
+          const key = decBtn.dataset.cartKey;
+          const nextQty = (state.cart[key] || 0) - 1;
+          if (nextQty <= 0) delete state.cart[key];
+          else state.cart[key] = nextQty;
+          renderCatalogGrid(false);
+          renderBasketDrawer();
+        }
+      });
+
+      // Slide-out basket drawer controls
+      document.getElementById('openCartBtn').addEventListener('click', openBasketDrawer);
+      document.getElementById('closeCartBtn').addEventListener('click', closeBasketDrawer);
+      document.getElementById('cartDrawerBackdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'cartDrawerBackdrop') closeBasketDrawer();
+      });
+
+      document.getElementById('deliveryNoteInput').addEventListener('input', (e) => {
+        state.deliveryNote = e.target.value;
+      });
+
+      document.getElementById('cartItemsList').addEventListener('click', (e) => {
+        const incBtn = e.target.closest('.qty-inc');
+        if (incBtn) {
+          const key = incBtn.dataset.cartKey;
+          state.cart[key] = (state.cart[key] || 0) + 1;
+          renderCatalogGrid(false);
+          renderBasketDrawer();
+          return;
+        }
+
+        const decBtn = e.target.closest('.qty-dec');
+        if (decBtn) {
+          const key = decBtn.dataset.cartKey;
+          const nextQty = (state.cart[key] || 0) - 1;
+          if (nextQty <= 0) delete state.cart[key];
+          else state.cart[key] = nextQty;
+          renderCatalogGrid(false);
+          renderBasketDrawer();
+          return;
+        }
+
+        const remBtn = e.target.closest('.remove-item-btn');
+        if (remBtn) {
+          delete state.cart[remBtn.dataset.cartKey];
+          renderCatalogGrid(false);
+          renderBasketDrawer();
+        }
+      });
+
+      // Checkout modal & order confirmation receipt
+      document.getElementById('openCheckoutBtn').addEventListener('click', openCheckoutModal);
+      document.getElementById('closeCheckoutBtn').addEventListener('click', closeCheckoutModal);
+      document.getElementById('checkoutModalBackdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'checkoutModalBackdrop') closeCheckoutModal();
+      });
+
+      document.getElementById('checkoutForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const errEl = document.getElementById('checkoutErrorMsg');
+        const name = document.getElementById('custName').value.trim();
+        const phone = document.getElementById('custPhone').value.trim();
+        const address = document.getElementById('custAddress').value.trim();
+        const timeSlot = document.getElementById('deliverySlotSelect').value;
+        const distObj = SRI_LANKA_DISTRICTS.find((d) => d.id === document.getElementById('checkoutDistrictSelect').value) || getSelectedDistrict();
+        const paymentEl = document.querySelector('input[name="paymentMethod"]:checked');
+        const paymentMethod = paymentEl ? paymentEl.value : 'Cash on Delivery';
+
+        if (!name || !phone || !address) {
+          errEl.textContent = 'Please fill in your full name, Sri Lankan phone number, and delivery address.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+
+        const subtotal = getBasketSubtotal();
+        if (subtotal <= 0 || getBasketCount() === 0) {
+          errEl.textContent = 'Your Lanka Vege basket is empty.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+
+        errEl.classList.add('hidden');
+        const orderCode = `LV-${Math.floor(10000 + Math.random() * 90000)}`;
+        document.getElementById('confirmedRefBadge').textContent = `Lanka Vege #${orderCode}`;
+
+        document.getElementById('confirmedReceiptBox').innerHTML = `
+          <div><strong>Store:</strong> Lanka Vege</div>
+          <div><strong>Customer:</strong> ${name} (${phone})</div>
+          <div><strong>District:</strong> ${distObj.name} — <strong>${tr('freeDeliveryBadge')}</strong></div>
+          <div><strong>Time Slot:</strong> ${timeSlot}</div>
+          <div><strong>Address:</strong> ${address}</div>
+          ${state.deliveryNote.trim() ? `<div><strong>Negotiation / Note:</strong> ${state.deliveryNote.trim()}</div>` : ''}
+          <div><strong>Payment Method:</strong> ${paymentMethod}</div>
+          <div class="pt-1.5 border-t border-earth-200 flex items-center justify-between text-sm font-black text-forest-950 num-lkr">
+            <span>Total Paid / Payable:</span>
+            <span>${formatLKR(subtotal)}</span>
+          </div>
+        `;
+
+        state.cart = {};
+        state.deliveryNote = '';
+        state.basketAlertVisible = false;
+        document.getElementById('deliveryNoteInput').value = '';
+        e.target.reset();
+
+        closeCheckoutModal();
+        renderCatalogGrid(false);
+        renderBasketDrawer();
+        document.getElementById('confirmationModalBackdrop').classList.add('open');
+      });
+
+      document.getElementById('closeConfirmationBtn').addEventListener('click', () => {
+        document.getElementById('confirmationModalBackdrop').classList.remove('open');
+      });
+      document.getElementById('confirmationModalBackdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'confirmationModalBackdrop') {
+          document.getElementById('confirmationModalBackdrop').classList.remove('open');
+        }
+      });
+
+      // Clean up timers on page unload
+      window.addEventListener('beforeunload', () => {
+        if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+        if (slClockTimer) clearInterval(slClockTimer);
+        if (toastTimer) clearTimeout(toastTimer);
+      });
+    });
+  </script>
+</body>
+</html>
